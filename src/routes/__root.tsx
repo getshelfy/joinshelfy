@@ -49,7 +49,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
-        <Toaster position="top-center" offset={20} mobileOffset={20} />
+        <Toaster position="top-center" />
         <Scripts />
       </body>
     </html>
