@@ -1,1 +1,7 @@
 project_id = "iykzwmheylyzzxbbchrl"
+
+[functions.generate-recipes]
+verify_jwt = false
+
+[functions.scan-expiry]
+verify_jwt = false
