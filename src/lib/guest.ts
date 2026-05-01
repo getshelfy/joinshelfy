@@ -6,6 +6,20 @@
 const FLAG_KEY = "shelfy:guest";
 const ID_KEY = "shelfy:guest:id";
 const ITEMS_KEY = "shelfy:guest:items";
+const LEGACY_DEMO_NAMES = new Set([
+  "Whole Milk",
+  "Chicken Breast",
+  "Baby Spinach",
+  "Free-range Eggs",
+  "Greek Yogurt",
+  "Salmon Fillet",
+  "Sourdough Bread",
+  "Mature Cheddar",
+  "Baby Carrots",
+  "Leftover Pasta",
+  "Orange Juice",
+  "Salted Butter",
+]);
 
 export type GuestItem = {
   id: string;
@@ -43,6 +57,7 @@ export function getGuestId(): string {
 
 export function startGuest(): string {
   localStorage.setItem(FLAG_KEY, "1");
+  clearLegacyGuestDemo();
   return getGuestId();
 }
 
@@ -50,6 +65,10 @@ export function endGuest() {
   localStorage.removeItem(FLAG_KEY);
   localStorage.removeItem(ITEMS_KEY);
   localStorage.removeItem(ID_KEY);
+}
+
+export function pauseGuest() {
+  localStorage.removeItem(FLAG_KEY);
 }
 
 export function readGuestItems(): GuestItem[] {
@@ -62,6 +81,16 @@ export function readGuestItems(): GuestItem[] {
 
 export function writeGuestItems(items: GuestItem[]) {
   localStorage.setItem(ITEMS_KEY, JSON.stringify(items));
+}
+
+export function clearLegacyGuestDemo() {
+  const items = readGuestItems();
+  const isLegacyDemo =
+    items.length === LEGACY_DEMO_NAMES.size && items.every((item) => LEGACY_DEMO_NAMES.has(item.name));
+
+  if (isLegacyDemo) {
+    localStorage.removeItem(ITEMS_KEY);
+  }
 }
 
 export function guestUser() {

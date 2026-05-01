@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User } from "@supabase/supabase-js";
-import { isGuest, guestUser } from "@/lib/guest";
+import { clearLegacyGuestDemo, isGuest, guestUser, pauseGuest } from "@/lib/guest";
 
 export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
@@ -11,6 +11,7 @@ export function useAuth() {
 
   useEffect(() => {
     const checkGuest = () => {
+      clearLegacyGuestDemo();
       const g = isGuest();
       setGuest(g);
       if (g) setUser(guestUser() as unknown as User);
@@ -19,6 +20,7 @@ export function useAuth() {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
       setSession(s);
       if (s?.user) {
+        pauseGuest();
         setUser(s.user);
         setGuest(false);
       } else if (isGuest()) {
@@ -31,7 +33,9 @@ export function useAuth() {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       if (data.session?.user) {
+        pauseGuest();
         setUser(data.session.user);
+        setGuest(false);
       } else {
         checkGuest();
       }
