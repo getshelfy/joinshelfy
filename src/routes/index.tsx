@@ -1,26 +1,192 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { AppShell } from "@/components/app-shell";
+import { Header } from "@/components/header";
+import { supabase } from "@/integrations/supabase/client";
+import { categoryEmoji, daysUntil, urgencyLabel, urgencyOf } from "@/lib/food";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Snowflake, Refrigerator, Package, Plus, Check, Trash2, Sprout } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
-  component: Index,
+  component: PantryPage,
 });
 
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
+type Item = {
+  id: string;
+  name: string;
+  category: string;
+  location: string;
+  expiry_date: string;
+  price: number | null;
+  status: string;
+};
+
+function locationIcon(loc: string) {
+  if (loc === "freezer") return <Snowflake className="h-3 w-3" />;
+  if (loc === "cupboard") return <Package className="h-3 w-3" />;
+  return <Refrigerator className="h-3 w-3" />;
+}
+
+function PantryPage() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <AppShell>
+      <Pantry />
+    </AppShell>
+  );
+}
+
+function Pantry() {
+  const [items, setItems] = useState<Item[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = async () => {
+    const { data, error } = await supabase
+      .from("food_items")
+      .select("id,name,category,location,expiry_date,price,status")
+      .eq("status", "active")
+      .order("expiry_date", { ascending: true });
+    if (error) toast.error(error.message);
+    setItems((data as Item[]) || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const markStatus = async (id: string, status: "used" | "wasted") => {
+    const { error } = await supabase.from("food_items").update({ status }).eq("id", id);
+    if (error) return toast.error(error.message);
+    setItems((prev) => prev.filter((i) => i.id !== id));
+    toast.success(status === "used" ? "Nice — used it up! 🌱" : "Logged as wasted");
+  };
+
+  const expiringSoon = items.filter((i) => daysUntil(i.expiry_date) <= 2).length;
+  const total = items.length;
+  // money saved estimate: sum of prices of items used in last 30 days
+  const [savedTotal, setSavedTotal] = useState(0);
+  useEffect(() => {
+    const since = new Date(Date.now() - 30 * 86400000).toISOString();
+    supabase
+      .from("food_items")
+      .select("price")
+      .eq("status", "used")
+      .gte("updated_at", since)
+      .then(({ data }) => {
+        const t = (data || []).reduce((s, r: any) => s + Number(r.price || 0), 0);
+        setSavedTotal(t);
+      });
+  }, [items.length]);
+
+  return (
+    <>
+      <Header title="Your pantry" subtitle="Use it up, save money, waste less." />
+
+      <section className="grid grid-cols-3 gap-2 px-5">
+        <Stat value={expiringSoon} label="Expiring soon" tone="urgent" />
+        <Stat value={total} label="Items tracked" tone="neutral" />
+        <Stat value={`£${savedTotal.toFixed(0)}`} label="Saved (30d)" tone="fresh" />
+      </section>
+
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      ) : items.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <ul className="mt-6 space-y-2.5 px-5">
+          {items.map((item) => {
+            const days = daysUntil(item.expiry_date);
+            const u = urgencyOf(days);
+            const tone =
+              u === "urgent"
+                ? "bg-urgent text-urgent-foreground"
+                : u === "warn"
+                  ? "bg-warn text-warn-foreground"
+                  : "bg-fresh text-fresh-foreground";
+            return (
+              <li
+                key={item.id}
+                className={cn(
+                  "rounded-2xl border bg-card p-3.5 shadow-sm transition-all",
+                  u === "urgent" && "border-urgent-foreground/20",
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-card-soft text-2xl">
+                    {categoryEmoji(item.category)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <h3 className="truncate font-medium">{item.name}</h3>
+                    </div>
+                    <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium", tone)}>
+                        {urgencyLabel(days)}
+                      </span>
+                      <span className="inline-flex items-center gap-1 capitalize">
+                        {locationIcon(item.location)}
+                        {item.location}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      onClick={() => markStatus(item.id, "used")}
+                      aria-label="Mark used"
+                      className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20"
+                    >
+                      <Check className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => markStatus(item.id, "wasted")}
+                      aria-label="Mark wasted"
+                      className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </>
+  );
+}
+
+function Stat({ value, label, tone }: { value: React.ReactNode; label: string; tone: "urgent" | "fresh" | "neutral" }) {
+  const toneCls =
+    tone === "urgent"
+      ? "bg-urgent text-urgent-foreground"
+      : tone === "fresh"
+        ? "bg-fresh text-fresh-foreground"
+        : "bg-card-soft text-foreground";
+  return (
+    <div className={cn("rounded-2xl p-3", toneCls)}>
+      <div className="font-serif text-2xl font-semibold leading-none">{value}</div>
+      <div className="mt-1 text-[11px] leading-tight opacity-80">{label}</div>
     </div>
   );
 }
 
-function Index() {
-  return <PlaceholderIndex />;
+function EmptyState() {
+  return (
+    <div className="mx-5 mt-10 rounded-3xl border bg-card p-8 text-center">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+        <Sprout className="h-6 w-6" />
+      </div>
+      <h2 className="mt-4 font-serif text-xl">Your shelf is empty</h2>
+      <p className="mt-1 text-sm text-muted-foreground">Add your first item and we'll track when it expires.</p>
+      <Button asChild className="mt-5 h-11">
+        <Link to="/add">
+          <Plus className="mr-1 h-4 w-4" /> Add an item
+        </Link>
+      </Button>
+    </div>
+  );
 }
