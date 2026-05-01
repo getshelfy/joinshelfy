@@ -7,9 +7,17 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" },
-      { title: "Shelfy — Stop wasting food" },
+      { title: "Shelfy — Don't foget what you already have." },
       { name: "description", content: "Shelfy is a friendly food expiry tracker that helps you save food and money." },
       { name: "theme-color", content: "#FAF8F3" },
+      { property: "og:title", content: "Shelfy — Don't foget what you already have." },
+      { name: "twitter:title", content: "Shelfy — Don't foget what you already have." },
+      { property: "og:description", content: "Shelfy is a friendly food expiry tracker that helps you save food and money." },
+      { name: "twitter:description", content: "Shelfy is a friendly food expiry tracker that helps you save food and money." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/64550aff-7ecd-4431-b8d0-949db4c80a4c/id-preview-1ae2f28b--c2a9322d-986e-452a-9a85-efae84e7928d.lovable.app-1777634184436.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/64550aff-7ecd-4431-b8d0-949db4c80a4c/id-preview-1ae2f28b--c2a9322d-986e-452a-9a85-efae84e7928d.lovable.app-1777634184436.png" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -41,7 +49,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
-        <Toaster position="top-center" offset={16} />
+        <Toaster />
         <Scripts />
       </body>
     </html>
