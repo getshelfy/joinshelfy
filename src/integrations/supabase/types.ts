@@ -101,6 +101,33 @@ export type Database = {
         }
         Relationships: []
       }
+      expiry_reminder_log: {
+        Row: {
+          expiry_date: string
+          food_item_id: string
+          id: string
+          reminder_type: string
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          expiry_date: string
+          food_item_id: string
+          id?: string
+          reminder_type: string
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          expiry_date?: string
+          food_item_id?: string
+          id?: string
+          reminder_type?: string
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       food_items: {
         Row: {
           brand: string | null
