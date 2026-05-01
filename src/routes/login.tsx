@@ -80,11 +80,11 @@ function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6 py-10">
+    <div className="flex min-h-screen flex-col items-center bg-background px-6 pb-8 pt-6">
       <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md">
-            <Sprout className="h-7 w-7" />
+        <div className="mb-5 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md">
+            <Sprout className="h-6 w-6" />
           </div>
           <h1 className="font-serif text-4xl font-semibold">Shelfy</h1>
           <p className="mt-2 text-sm text-muted-foreground">
