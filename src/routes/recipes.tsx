@@ -106,13 +106,46 @@ function RecipesPage() {
   );
 }
 
+function pickEmoji(r: Recipe): string {
+  if (r.emoji && r.emoji !== "🍽️" && r.emoji !== "🍽") return r.emoji;
+  const n = r.name.toLowerCase();
+  const map: Array<[RegExp, string]> = [
+    [/pasta|spaghetti|linguine|penne|carbonara|bolognese|lasagn/, "🍝"],
+    [/noodle|ramen|pho|udon/, "🍜"],
+    [/pizza/, "🍕"],
+    [/burger/, "🍔"],
+    [/taco|burrito|quesadilla/, "🌮"],
+    [/sandwich|toastie|panini|wrap/, "🥪"],
+    [/salad|slaw/, "🥗"],
+    [/soup|broth|stew|chowder/, "🍲"],
+    [/curry|tikka|masala|dahl|dal/, "🍛"],
+    [/stir.?fry|wok/, "🥘"],
+    [/risotto|paella|rice|pilaf|biryani/, "🍚"],
+    [/sushi|sashimi|maki/, "🍣"],
+    [/omelette|frittata|scramble|egg|shakshuka/, "🍳"],
+    [/pancake|crepe|waffle/, "🥞"],
+    [/bread|toast|bruschetta/, "🍞"],
+    [/croissant|pastry|scone/, "🥐"],
+    [/cake|cookie|brownie|crumble|pie|tart|dessert/, "🍰"],
+    [/smoothie|shake|juice/, "🥤"],
+    [/chicken|roast|poultry/, "🍗"],
+    [/fish|salmon|tuna|cod/, "🐟"],
+    [/shrimp|prawn/, "🦐"],
+    [/beef|steak/, "🥩"],
+    [/cheese|fondue/, "🧀"],
+    [/veg|vegetable|roast veg/, "🥦"],
+  ];
+  for (const [re, e] of map) if (re.test(n)) return e;
+  return "🥘";
+}
+
 function RecipeCard({ r }: { r: Recipe }) {
   const [open, setOpen] = useState(false);
   return (
     <article className="rounded-2xl border bg-card p-4">
       <div className="flex items-start gap-3">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-card-soft text-2xl">
-          {r.emoji || "🍽️"}
+          {pickEmoji(r)}
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="font-serif text-lg font-semibold leading-tight">{r.name}</h3>
