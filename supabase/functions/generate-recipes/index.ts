@@ -17,7 +17,13 @@ Deno.serve(async (req) => {
 
     const systemPrompt = `You are Shelfy, a warm and friendly home cook who helps people use up food before it goes to waste. Suggest practical recipes using ingredients people already have. Be encouraging and never preachy.`;
 
-    const userPrompt = `Suggest 4 recipes that use these ingredients expiring soon. Prioritise the items expiring earliest. Recipes should feel approachable, not fancy.\n\nIngredients:\n${itemList}\n\nReturn structured recipe data.`;
+    const userPrompt = `Suggest 4 recipes that use these ingredients expiring soon. Prioritise the items expiring earliest. Recipes should feel approachable, not fancy.
+
+Ingredients:
+${itemList}
+
+For each recipe, pick ONE emoji that visually matches the specific dish. Examples: pasta dishes → 🍝, stir-fry → 🥘, soup → 🍲, salad → 🥗, omelette/eggs → 🍳, sandwich → 🥪, taco → 🌮, burger → 🍔, pizza → 🍕, curry → 🍛, sushi → 🍣, ramen/noodles → 🍜, rice bowl → 🍚, roast meat → 🍗, fish → 🐟, smoothie → 🥤, pancakes → 🥞, baked goods → 🥐, dessert → 🍰. NEVER use the generic plate emoji 🍽️ — always pick something that represents the actual dish.`;
+
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -46,7 +52,7 @@ Deno.serve(async (req) => {
                       type: "object",
                       properties: {
                         name: { type: "string", description: "Recipe name" },
-                        emoji: { type: "string", description: "A single emoji that best represents the dish, e.g. 🍝, 🥗, 🍳" },
+                        emoji: { type: "string", description: "A single food emoji that visually matches THIS specific dish (e.g. 🍝 pasta, 🥗 salad, 🍳 eggs, 🍲 soup, 🥪 sandwich, 🍛 curry, 🍜 noodles, 🥞 pancakes, 🍰 dessert). Never use 🍽️." },
                         usesItems: {
                           type: "array",
                           items: { type: "string" },
