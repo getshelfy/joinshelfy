@@ -224,14 +224,42 @@ function BarcodeScanner({
       BarcodeFormat.CODE_128,
       BarcodeFormat.CODE_39,
     ]);
-    const reader = new BrowserMultiFormatReader(hints);
+    hints.set(DecodeHintType.TRY_HARDER, true);
+    // Faster scan interval (default is 500ms) for snappier detection
+    const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 80, delayBetweenScanSuccess: 80 });
     let controls: { stop: () => void } | null = null;
+    let activeStream: MediaStream | null = null;
 
     (async () => {
       try {
-        controls = await reader.decodeFromVideoDevice(
-          undefined,
-          videoRef.current!,
+        // Request the highest practical resolution from the rear camera for crisp barcode reads
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            frameRate: { ideal: 30 },
+          },
+          audio: false,
+        });
+        activeStream = stream;
+
+        // Try to enable continuous autofocus where supported
+        try {
+          const track = stream.getVideoTracks()[0];
+          const caps: any = track.getCapabilities?.() ?? {};
+          const advanced: any[] = [];
+          if (caps.focusMode?.includes?.("continuous")) advanced.push({ focusMode: "continuous" });
+          if (advanced.length) await track.applyConstraints({ advanced });
+        } catch {}
+
+        if (!videoRef.current) return;
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+
+        controls = await reader.decodeFromStream(
+          stream,
+          videoRef.current,
           async (result) => {
             if (!result || detectedRef.current) return;
             detectedRef.current = true;
@@ -257,6 +285,7 @@ function BarcodeScanner({
 
     return () => {
       controls?.stop();
+      activeStream?.getTracks().forEach((t) => t.stop());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
