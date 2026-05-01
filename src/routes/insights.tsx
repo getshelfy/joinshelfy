@@ -4,7 +4,7 @@ import { AppShell } from "@/components/app-shell";
 import { Header } from "@/components/header";
 import { supabase } from "@/integrations/supabase/client";
 import { categoryEmoji } from "@/lib/food";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend, CartesianGrid } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 
 export const Route = createFileRoute("/insights")({
   component: () => (
