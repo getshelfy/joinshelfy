@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { categoryEmoji, daysUntil, urgencyLabel, urgencyOf } from "@/lib/food";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Snowflake, Refrigerator, Package, Plus, Check, Trash2, Sprout } from "lucide-react";
+import { Plus, Check, Trash2, Sprout } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
@@ -23,10 +23,10 @@ type Item = {
   status: string;
 };
 
-function locationIcon(loc: string) {
-  if (loc === "freezer") return <Snowflake className="h-3 w-3" />;
-  if (loc === "cupboard") return <Package className="h-3 w-3" />;
-  return <Refrigerator className="h-3 w-3" />;
+function locationEmoji(loc: string) {
+  if (loc === "freezer") return "🧊";
+  if (loc === "cupboard") return "🪵";
+  return "❄️";
 }
 
 function PantryPage() {
@@ -128,7 +128,7 @@ function Pantry() {
                         {urgencyLabel(days)}
                       </span>
                       <span className="inline-flex items-center gap-1 capitalize">
-                        {locationIcon(item.location)}
+                        <span aria-hidden>{locationEmoji(item.location)}</span>
                         {item.location}
                       </span>
                     </div>

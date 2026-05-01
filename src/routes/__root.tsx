@@ -41,7 +41,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
-        <Toaster />
+        <Toaster position="top-center" offset={16} />
         <Scripts />
       </body>
     </html>
