@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Header } from "@/components/header";
 import { supabase } from "@/integrations/supabase/client";
+import { listActiveForRecipes } from "@/lib/db";
 import { daysUntil } from "@/lib/food";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Clock, ChefHat, Loader2 } from "lucide-react";
