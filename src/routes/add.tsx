@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CATEGORIES, LOCATIONS, guessCategory } from "@/lib/food";
 import { toast } from "sonner";
-import { Camera, Scan, Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2, Plus, Trash2, X, Check, Keyboard, Camera } from "lucide-react";
+import { BrowserMultiFormatReader } from "@zxing/browser";
+import { DecodeHintType, BarcodeFormat } from "@zxing/library";
 
 export const Route = createFileRoute("/add")({
   component: () => (
@@ -27,7 +29,7 @@ function AddPage() {
       <div className="px-5">
         <Tabs defaultValue="single">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="single">Single item</TabsTrigger>
+            <TabsTrigger value="single">Scan</TabsTrigger>
             <TabsTrigger value="bulk">Bulk add</TabsTrigger>
           </TabsList>
           <TabsContent value="single" className="mt-4">
@@ -42,7 +44,7 @@ function AddPage() {
   );
 }
 
-type Step = "barcode" | "details" | "expiry";
+type Step = "barcode" | "expiry" | "details";
 
 function SingleAdd() {
   const navigate = useNavigate();
@@ -53,103 +55,10 @@ function SingleAdd() {
   const [location, setLocation] = useState<string>("fridge");
   const [price, setPrice] = useState("");
   const [expiry, setExpiry] = useState("");
-  const [scanning, setScanning] = useState(false);
-  const [ocrLoading, setOcrLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [barcode, setBarcode] = useState("");
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const fileRef = useRef<HTMLInputElement | null>(null);
 
-  // Barcode detection via native BarcodeDetector if available
-  useEffect(() => {
-    if (step !== "barcode" || !scanning) return;
-    let stream: MediaStream | null = null;
-    let raf = 0;
-    let cancelled = false;
-    (async () => {
-      try {
-        const Detector = (window as unknown as { BarcodeDetector?: any }).BarcodeDetector;
-        if (!Detector) {
-          toast.message("Camera scan not supported here. Enter the barcode or skip.");
-          setScanning(false);
-          return;
-        }
-        const detector = new Detector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"] });
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-          audio: false,
-        });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-        }
-        const tick = async () => {
-          if (cancelled || !videoRef.current) return;
-          try {
-            const codes = await detector.detect(videoRef.current);
-            if (codes && codes[0]?.rawValue) {
-              setBarcode(codes[0].rawValue);
-              setScanning(false);
-              await lookup(codes[0].rawValue);
-              return;
-            }
-          } catch {}
-          raf = requestAnimationFrame(tick);
-        };
-        raf = requestAnimationFrame(tick);
-      } catch (e: any) {
-        toast.error("Camera unavailable: " + (e.message || "unknown"));
-        setScanning(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(raf);
-      stream?.getTracks().forEach((t) => t.stop());
-    };
-  }, [step, scanning]);
-
-  const lookup = async (code: string) => {
-    try {
-      const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
-      const data = await res.json();
-      if (data.status === 1) {
-        const p = data.product;
-        const n = p.product_name || p.generic_name || "";
-        setName(n);
-        setBrand(p.brands || "");
-        setCategory(guessCategory(n, { categories: p.categories || "" }));
-        toast.success(`Found: ${n || "product"}`);
-      } else {
-        toast.message("Couldn't find that product. Add the name manually.");
-      }
-    } catch {
-      toast.message("Lookup failed. Add the name manually.");
-    } finally {
-      setStep("details");
-    }
-  };
-
-  const onExpiryFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setOcrLoading(true);
-    try {
-      const b64 = await fileToDataUrl(file);
-      const { data, error } = await supabase.functions.invoke("scan-expiry", { body: { imageBase64: b64 } });
-      if (error) throw error;
-      if (data?.date) {
-        setExpiry(data.date);
-        toast.success(`Detected: ${data.date}`);
-      } else {
-        toast.message("Couldn't read the date. Pick it manually.");
-      }
-    } catch (err: any) {
-      toast.error(err.message || "OCR failed");
-    } finally {
-      setOcrLoading(false);
-    }
-  };
+  const goExpiry = () => setStep("expiry");
+  const goDetails = () => setStep("details");
 
   const save = async () => {
     if (!name || !expiry) {
@@ -174,116 +83,428 @@ function SingleAdd() {
     navigate({ to: "/" });
   };
 
+  if (step === "barcode") {
+    return (
+      <BarcodeScanner
+        onProduct={(p) => {
+          setName(p.name);
+          setBrand(p.brand);
+          setCategory(p.category);
+          goExpiry();
+        }}
+        onSkipManual={(productName) => {
+          if (productName) {
+            setName(productName);
+            setCategory(guessCategory(productName));
+          }
+          goExpiry();
+        }}
+      />
+    );
+  }
+
+  if (step === "expiry") {
+    return (
+      <ExpiryCapture
+        productName={name}
+        onDate={(d) => {
+          setExpiry(d);
+          goDetails();
+        }}
+      />
+    );
+  }
+
   return (
-    <div className="space-y-5">
-      {step === "barcode" && (
-        <div className="rounded-2xl border bg-card p-5">
-          <h3 className="font-serif text-lg">Step 1 — Scan the barcode</h3>
-          <p className="mt-1 text-sm text-muted-foreground">We'll auto-fill the product name for you.</p>
-
-          {scanning ? (
-            <div className="mt-4 overflow-hidden rounded-xl bg-black aspect-[4/3]">
-              <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
-            </div>
-          ) : (
-            <button
-              onClick={() => setScanning(true)}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-primary-foreground"
-            >
-              <Scan className="h-5 w-5" /> Open camera
-            </button>
-          )}
-
-          <div className="mt-4 space-y-2">
-            <Label htmlFor="bc">Or enter a barcode</Label>
-            <div className="flex gap-2">
-              <Input id="bc" inputMode="numeric" value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="e.g. 5000295125247" />
-              <Button onClick={() => barcode && lookup(barcode)} variant="secondary">Look up</Button>
-            </div>
-          </div>
-
-          <button onClick={() => setStep("details")} className="mt-4 w-full rounded-xl border py-3 text-sm">
-            Skip — enter manually
-          </button>
+    <div className="rounded-2xl border bg-card p-5 space-y-4">
+      <h3 className="font-serif text-lg">Confirm details</h3>
+      <div className="space-y-2">
+        <Label>Name</Label>
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Whole milk" />
+      </div>
+      <div className="space-y-2">
+        <Label>Expiry date</Label>
+        <Input type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label>Category</Label>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {CATEGORIES.map((c) => (
+                <SelectItem key={c.name} value={c.name}>{c.emoji} {c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      )}
-
-      {step === "details" && (
-        <div className="rounded-2xl border bg-card p-5 space-y-4">
-          <h3 className="font-serif text-lg">Item details</h3>
-          <div className="space-y-2">
-            <Label>Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Whole milk" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map((c) => (
-                    <SelectItem key={c.name} value={c.name}>{c.emoji} {c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Location</Label>
-              <Select value={location} onValueChange={setLocation}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {LOCATIONS.map((l) => (
-                    <SelectItem key={l} value={l} className="capitalize">{l}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Price (optional)</Label>
-            <Input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="2.50" />
-          </div>
-          <Button onClick={() => setStep("expiry")} className="w-full h-11" disabled={!name}>Next: expiry date</Button>
+        <div className="space-y-2">
+          <Label>Location</Label>
+          <Select value={location} onValueChange={setLocation}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {LOCATIONS.map((l) => (
+                <SelectItem key={l} value={l} className="capitalize">{l}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      )}
+      </div>
+      <div className="space-y-2">
+        <Label>Price (optional)</Label>
+        <Input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="2.50" />
+      </div>
+      <Button onClick={save} className="w-full h-11" disabled={saving}>
+        {saving ? "Saving..." : "Add to pantry"}
+      </Button>
+    </div>
+  );
+}
 
-      {step === "expiry" && (
-        <div className="rounded-2xl border bg-card p-5 space-y-4">
-          <h3 className="font-serif text-lg">Step 2 — Expiry date</h3>
-          <p className="text-sm text-muted-foreground">Snap a photo of the date on the packaging — or pick it below.</p>
+type FoundProduct = { name: string; brand: string; category: string };
 
-          <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={onExpiryFile} className="hidden" />
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-primary-foreground disabled:opacity-60"
-            disabled={ocrLoading}
+function vibrate() {
+  try { navigator.vibrate?.(60); } catch {}
+}
+function beep() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.value = 880;
+    g.gain.value = 0.05;
+    o.start();
+    setTimeout(() => { o.stop(); ctx.close(); }, 120);
+  } catch {}
+}
+
+async function lookupBarcode(code: string): Promise<FoundProduct | null> {
+  try {
+    const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
+    const data = await res.json();
+    if (data.status === 1) {
+      const p = data.product;
+      const n = p.product_name || p.generic_name || "";
+      return {
+        name: n,
+        brand: p.brands || "",
+        category: guessCategory(n, { categories: p.categories || "" }),
+      };
+    }
+  } catch {}
+  return null;
+}
+
+function BarcodeScanner({
+  onProduct,
+  onSkipManual,
+}: {
+  onProduct: (p: FoundProduct) => void;
+  onSkipManual: (productName?: string) => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [looking, setLooking] = useState(false);
+  const [showManual, setShowManual] = useState(false);
+  const [manualValue, setManualValue] = useState("");
+  const detectedRef = useRef(false);
+
+  useEffect(() => {
+    const hints = new Map();
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+      BarcodeFormat.EAN_13,
+      BarcodeFormat.EAN_8,
+      BarcodeFormat.UPC_A,
+      BarcodeFormat.UPC_E,
+      BarcodeFormat.CODE_128,
+      BarcodeFormat.CODE_39,
+    ]);
+    const reader = new BrowserMultiFormatReader(hints);
+    let controls: { stop: () => void } | null = null;
+
+    (async () => {
+      try {
+        controls = await reader.decodeFromVideoDevice(
+          undefined,
+          videoRef.current!,
+          async (result) => {
+            if (!result || detectedRef.current) return;
+            detectedRef.current = true;
+            const code = result.getText();
+            vibrate();
+            beep();
+            setLooking(true);
+            const product = await lookupBarcode(code);
+            controls?.stop();
+            if (product && product.name) {
+              toast.success(`Found: ${product.name}`);
+              onProduct(product);
+            } else {
+              toast.message("Couldn't find that product. Add the name.");
+              onSkipManual();
+            }
+          },
+        );
+      } catch (e: any) {
+        setError(e?.message || "Camera unavailable");
+      }
+    })();
+
+    return () => {
+      controls?.stop();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="space-y-3">
+      <div className="relative overflow-hidden rounded-2xl bg-black aspect-[3/4]">
+        <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" muted playsInline />
+
+        {/* Dim overlay with cutout */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-0 bg-black/40" />
+          <div
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-2xl"
+            style={{
+              width: "78%",
+              aspectRatio: "1.6 / 1",
+              boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)",
+              border: "3px solid #2D9B6F",
+            }}
           >
-            {ocrLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
-            {ocrLoading ? "Reading date..." : "Snap the expiry date"}
-          </button>
-
-          <div className="space-y-2">
-            <Label>Expiry date</Label>
-            <Input type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} />
+            {/* Corner accents */}
+            <span className="absolute -left-1 -top-1 h-5 w-5 border-l-4 border-t-4 border-white rounded-tl-lg" />
+            <span className="absolute -right-1 -top-1 h-5 w-5 border-r-4 border-t-4 border-white rounded-tr-lg" />
+            <span className="absolute -left-1 -bottom-1 h-5 w-5 border-l-4 border-b-4 border-white rounded-bl-lg" />
+            <span className="absolute -right-1 -bottom-1 h-5 w-5 border-r-4 border-b-4 border-white rounded-br-lg" />
+            {/* Scan line */}
+            <span className="absolute left-2 right-2 top-1/2 h-[2px] bg-primary/90 shadow-[0_0_12px_rgba(45,155,111,0.9)] animate-pulse" />
           </div>
+        </div>
 
-          <Button onClick={save} className="w-full h-11" disabled={saving || !expiry}>
-            {saving ? "Saving..." : "Add to pantry"}
-          </Button>
+        {/* Top instruction */}
+        <div className="absolute inset-x-0 top-0 p-4 text-center">
+          <p className="inline-block rounded-full bg-black/55 px-3 py-1.5 text-xs text-white">
+            Point at the barcode
+          </p>
+        </div>
+
+        {looking && (
+          <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-black/55 p-3 text-sm text-white">
+            <Loader2 className="h-4 w-4 animate-spin" /> Looking up product…
+          </div>
+        )}
+
+        {error && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/95 p-6 text-center">
+            <p className="text-sm text-muted-foreground">{error}</p>
+            <Button onClick={() => onSkipManual()} variant="secondary">Enter manually</Button>
+          </div>
+        )}
+      </div>
+
+      {!showManual ? (
+        <button
+          onClick={() => setShowManual(true)}
+          className="w-full rounded-xl border bg-card py-3 text-sm font-medium"
+        >
+          <Keyboard className="mr-2 inline h-4 w-4" /> Can't read barcode?
+        </button>
+      ) : (
+        <div className="rounded-2xl border bg-card p-4 space-y-3">
+          <Label className="text-sm">Barcode number or product name</Label>
+          <Input
+            value={manualValue}
+            onChange={(e) => setManualValue(e.target.value)}
+            placeholder="e.g. 5000295125247 or 'Whole milk'"
+          />
+          <div className="flex gap-2">
+            <Button
+              className="flex-1"
+              onClick={async () => {
+                const v = manualValue.trim();
+                if (!v) return;
+                if (/^\d{6,}$/.test(v)) {
+                  setLooking(true);
+                  const product = await lookupBarcode(v);
+                  setLooking(false);
+                  if (product?.name) return onProduct(product);
+                  toast.message("Not found — using as name.");
+                  return onSkipManual(v);
+                }
+                onSkipManual(v);
+              }}
+            >
+              <Check className="mr-1 h-4 w-4" /> Use this
+            </Button>
+            <Button variant="ghost" onClick={() => setShowManual(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result as string);
-    r.onerror = reject;
-    r.readAsDataURL(file);
-  });
+function ExpiryCapture({ productName, onDate }: { productName: string; onDate: (d: string) => void }) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [manual, setManual] = useState(false);
+  const [date, setDate] = useState("");
+
+  useEffect(() => {
+    if (manual) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+          audio: false,
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+      } catch (e: any) {
+        setError(e?.message || "Camera unavailable");
+        setManual(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    };
+  }, [manual]);
+
+  const capture = async () => {
+    if (!videoRef.current || busy) return;
+    setBusy(true);
+    try {
+      const v = videoRef.current;
+      const c = canvasRef.current!;
+      c.width = v.videoWidth;
+      c.height = v.videoHeight;
+      const ctx = c.getContext("2d")!;
+      ctx.drawImage(v, 0, 0, c.width, c.height);
+      const b64 = c.toDataURL("image/jpeg", 0.85);
+
+      const { data, error } = await supabase.functions.invoke("scan-expiry", { body: { imageBase64: b64 } });
+      if (error) throw error;
+      if (data?.date) {
+        setDate(data.date);
+        toast.success(`Detected: ${data.date}`);
+      } else {
+        toast.message("Couldn't read the date — pick it manually.");
+        setManual(true);
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "OCR failed");
+      setManual(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (manual) {
+    return (
+      <div className="rounded-2xl border bg-card p-5 space-y-4">
+        <div>
+          <h3 className="font-serif text-lg">Expiry date</h3>
+          {productName && <p className="text-sm text-muted-foreground">For {productName}</p>}
+        </div>
+        <div className="space-y-2">
+          <Label>Pick a date</Label>
+          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </div>
+        <Button className="w-full h-11" disabled={!date} onClick={() => onDate(date)}>
+          Continue
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="relative overflow-hidden rounded-2xl bg-black aspect-[3/4]">
+        <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" muted playsInline />
+        <canvas ref={canvasRef} className="hidden" />
+
+        <div className="pointer-events-none absolute inset-0">
+          <div
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-xl"
+            style={{
+              width: "82%",
+              aspectRatio: "2.4 / 1",
+              boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)",
+              border: "3px solid #2D9B6F",
+            }}
+          />
+        </div>
+
+        <div className="absolute inset-x-0 top-0 p-4 text-center">
+          <p className="inline-block rounded-full bg-black/55 px-3 py-1.5 text-xs text-white">
+            Flip the pack — frame the use-by date
+          </p>
+        </div>
+
+        {date && (
+          <div className="absolute inset-x-3 top-14 rounded-xl bg-card/95 p-3 text-sm">
+            <p className="text-muted-foreground text-xs">Detected</p>
+            <p className="font-serif text-lg">{date}</p>
+            <div className="mt-2 flex gap-2">
+              <Button size="sm" className="flex-1" onClick={() => onDate(date)}>
+                <Check className="mr-1 h-4 w-4" /> Looks right
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => setManual(true)}>
+                Edit
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-3 p-4">
+          <button
+            onClick={capture}
+            disabled={busy}
+            className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-xl ring-4 ring-white/30 disabled:opacity-60"
+            aria-label="Capture"
+          >
+            {busy ? (
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            ) : (
+              <Camera className="h-6 w-6 text-primary" />
+            )}
+          </button>
+        </div>
+
+        {error && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/95 p-6 text-center">
+            <p className="text-sm text-muted-foreground">{error}</p>
+            <Button onClick={() => setManual(true)} variant="secondary">Pick date manually</Button>
+          </div>
+        )}
+      </div>
+
+      <button
+        onClick={() => setManual(true)}
+        className="w-full rounded-xl border bg-card py-3 text-sm font-medium"
+      >
+        Pick date manually
+      </button>
+    </div>
+  );
 }
 
 type BulkRow = { name: string; category: string; location: string; expiry_date: string; price: string };
