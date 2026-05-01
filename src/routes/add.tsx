@@ -68,8 +68,7 @@ function SingleAdd() {
     let cancelled = false;
     (async () => {
       try {
-        // @ts-expect-error - non-standard global
-        const Detector = (window as any).BarcodeDetector;
+        const Detector = (window as unknown as { BarcodeDetector?: any }).BarcodeDetector;
         if (!Detector) {
           toast.message("Camera scan not supported here. Enter the barcode or skip.");
           setScanning(false);
