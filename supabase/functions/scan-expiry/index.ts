@@ -95,6 +95,33 @@ Deno.serve(async (req) => {
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     const args = toolCall ? JSON.parse(toolCall.function.arguments) : { date: "", rawText: "", confidence: "low" };
 
+    // Sanity-clamp the year. Gemini sometimes returns 21XX or 19XX for two-digit years.
+    if (args.date && /^\d{4}-\d{2}-\d{2}$/.test(args.date)) {
+      const [yStr, mStr, dStr] = args.date.split("-");
+      let y = parseInt(yStr, 10);
+      const m = parseInt(mStr, 10);
+      const d = parseInt(dStr, 10);
+      const minYear = currentYear;
+      const maxYear = currentYear + 5;
+      if (y > maxYear) {
+        // Map 2125 -> 2025, 2126 -> 2026, etc.
+        const lastTwo = y % 100;
+        const candidate = Math.floor(currentYear / 100) * 100 + lastTwo;
+        y = candidate < minYear ? candidate + 100 : candidate;
+      } else if (y < minYear) {
+        // 1925 -> 2025
+        const lastTwo = y % 100;
+        y = Math.floor(currentYear / 100) * 100 + lastTwo;
+        if (y < minYear) y += 100;
+      }
+      // Final guard: if still implausible, clear it
+      if (y < minYear || y > maxYear) {
+        args.date = "";
+      } else {
+        args.date = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      }
+    }
+
     return new Response(JSON.stringify(args), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
