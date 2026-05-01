@@ -18,6 +18,7 @@ export const Route = createFileRoute("/recipes")({
 
 type Recipe = {
   name: string;
+  emoji?: string;
   usesItems: string[];
   cookTime: string;
   difficulty: string;
@@ -109,7 +110,10 @@ function RecipeCard({ r }: { r: Recipe }) {
   const [open, setOpen] = useState(false);
   return (
     <article className="rounded-2xl border bg-card p-4">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-card-soft text-2xl">
+          {r.emoji || "🍽️"}
+        </div>
         <div className="min-w-0 flex-1">
           <h3 className="font-serif text-lg font-semibold leading-tight">{r.name}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{r.description}</p>

@@ -4,7 +4,7 @@ import { AppShell } from "@/components/app-shell";
 import { Header } from "@/components/header";
 import { supabase } from "@/integrations/supabase/client";
 import { categoryEmoji } from "@/lib/food";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 
 export const Route = createFileRoute("/insights")({
   component: () => (
@@ -105,16 +105,46 @@ function InsightsPage() {
         </div>
 
         <div className="mt-5 rounded-2xl border bg-card p-4">
-          <h2 className="font-serif text-lg">Last 4 weeks</h2>
-          <div className="mt-2 h-48">
+          <div className="flex items-center justify-between">
+            <h2 className="font-serif text-lg">Last 4 weeks</h2>
+            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-primary" /> Used
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-destructive" /> Wasted
+              </span>
+            </div>
+          </div>
+          <div className="mt-3 h-44">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weekly}>
-                <XAxis dataKey="week" tick={{ fontSize: 11 }} stroke="currentColor" />
-                <YAxis tick={{ fontSize: 11 }} stroke="currentColor" allowDecimals={false} />
-                <Tooltip />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="used" fill="var(--color-primary)" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="wasted" fill="var(--color-destructive)" radius={[6, 6, 0, 0]} />
+              <BarChart data={weekly} barGap={4} barCategoryGap="22%" margin={{ top: 8, right: 4, left: -16, bottom: 0 }}>
+                <CartesianGrid vertical={false} stroke="currentColor" strokeOpacity={0.08} />
+                <XAxis
+                  dataKey="week"
+                  tick={{ fontSize: 11, fill: "currentColor", fillOpacity: 0.6 }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 11, fill: "currentColor", fillOpacity: 0.6 }}
+                  tickLine={false}
+                  axisLine={false}
+                  allowDecimals={false}
+                  width={28}
+                />
+                <Tooltip
+                  cursor={{ fill: "currentColor", fillOpacity: 0.04 }}
+                  contentStyle={{
+                    borderRadius: 12,
+                    border: "1px solid var(--color-border)",
+                    background: "var(--color-card)",
+                    fontSize: 12,
+                    boxShadow: "0 4px 14px rgba(0,0,0,0.06)",
+                  }}
+                />
+                <Bar dataKey="used" fill="var(--color-primary)" radius={[8, 8, 0, 0]} maxBarSize={22} />
+                <Bar dataKey="wasted" fill="var(--color-destructive)" radius={[8, 8, 0, 0]} maxBarSize={22} />
               </BarChart>
             </ResponsiveContainer>
           </div>

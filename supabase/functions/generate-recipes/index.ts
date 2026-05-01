@@ -46,6 +46,7 @@ Deno.serve(async (req) => {
                       type: "object",
                       properties: {
                         name: { type: "string", description: "Recipe name" },
+                        emoji: { type: "string", description: "A single emoji that best represents the dish, e.g. 🍝, 🥗, 🍳" },
                         usesItems: {
                           type: "array",
                           items: { type: "string" },
@@ -57,7 +58,7 @@ Deno.serve(async (req) => {
                         ingredients: { type: "array", items: { type: "string" } },
                         steps: { type: "array", items: { type: "string" } },
                       },
-                      required: ["name", "usesItems", "cookTime", "difficulty", "description", "ingredients", "steps"],
+                      required: ["name", "emoji", "usesItems", "cookTime", "difficulty", "description", "ingredients", "steps"],
                       additionalProperties: false,
                     },
                   },
