@@ -67,6 +67,10 @@ export function endGuest() {
   localStorage.removeItem(ID_KEY);
 }
 
+export function pauseGuest() {
+  localStorage.removeItem(FLAG_KEY);
+}
+
 export function readGuestItems(): GuestItem[] {
   try {
     return JSON.parse(localStorage.getItem(ITEMS_KEY) || "[]");
