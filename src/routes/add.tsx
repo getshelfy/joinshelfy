@@ -476,10 +476,11 @@ function ExpiryCapture({ productName, onDate }: { productName: string; onDate: (
 
         <div className="pointer-events-none absolute inset-0">
           <div
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-xl"
+            className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-xl"
             style={{
-              width: "82%",
-              aspectRatio: "2.4 / 1",
+              top: "38%",
+              width: "70%",
+              aspectRatio: "3 / 1",
               boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)",
               border: "3px solid #2D9B6F",
             }}
@@ -487,8 +488,8 @@ function ExpiryCapture({ productName, onDate }: { productName: string; onDate: (
         </div>
 
         <div className="absolute inset-x-0 top-0 p-4 text-center">
-          <p className="inline-block rounded-full bg-black/55 px-3 py-1.5 text-xs text-white">
-            Flip the pack — frame the use-by date
+          <p className="inline-block rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-lg">
+            Step 2 of 2 — Now snap a photo of the expiry date
           </p>
         </div>
 
