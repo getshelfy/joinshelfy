@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Header } from "@/components/header";
 import { supabase } from "@/integrations/supabase/client";
+import { listActiveForRecipes } from "@/lib/db";
 import { daysUntil } from "@/lib/food";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Clock, ChefHat, Loader2 } from "lucide-react";
@@ -36,19 +37,13 @@ function RecipesPage() {
     setLoading(true);
     setRecipes([]);
     try {
-      const { data: items, error } = await supabase
-        .from("food_items")
-        .select("name,category,expiry_date")
-        .eq("status", "active")
-        .order("expiry_date", { ascending: true })
-        .limit(8);
-      if (error) throw error;
+      const items = await listActiveForRecipes(8);
       if (!items || items.length === 0) {
         setHasItems(false);
         return;
       }
       setHasItems(true);
-      const payload = items.map((i: any) => ({
+      const payload = items.map((i) => ({
         name: i.name,
         category: i.category,
         daysLeft: daysUntil(i.expiry_date),

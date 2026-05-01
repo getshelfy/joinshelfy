@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Header } from "@/components/header";
-import { supabase } from "@/integrations/supabase/client";
+import { listActiveItems, sumUsedSince, updateItemStatus, type FoodRow } from "@/lib/db";
 import { categoryEmoji, daysUntil, urgencyLabel, urgencyOf } from "@/lib/food";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -13,15 +13,7 @@ export const Route = createFileRoute("/")({
   component: PantryPage,
 });
 
-type Item = {
-  id: string;
-  name: string;
-  category: string;
-  location: string;
-  expiry_date: string;
-  price: number | null;
-  status: string;
-};
+type Item = FoodRow;
 
 function locationEmoji(loc: string) {
   if (loc === "freezer") return "🧊";
@@ -42,14 +34,14 @@ function Pantry() {
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const { data, error } = await supabase
-      .from("food_items")
-      .select("id,name,category,location,expiry_date,price,status")
-      .eq("status", "active")
-      .order("expiry_date", { ascending: true });
-    if (error) toast.error(error.message);
-    setItems((data as Item[]) || []);
-    setLoading(false);
+    try {
+      const data = await listActiveItems();
+      setItems(data);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -57,10 +49,13 @@ function Pantry() {
   }, []);
 
   const markStatus = async (id: string, status: "used" | "wasted") => {
-    const { error } = await supabase.from("food_items").update({ status }).eq("id", id);
-    if (error) return toast.error(error.message);
-    setItems((prev) => prev.filter((i) => i.id !== id));
-    toast.success(status === "used" ? "Nice — used it up! 🌱" : "Logged as wasted");
+    try {
+      await updateItemStatus(id, status);
+      setItems((prev) => prev.filter((i) => i.id !== id));
+      toast.success(status === "used" ? "Nice — used it up! 🌱" : "Logged as wasted");
+    } catch (err: any) {
+      toast.error(err.message || "Failed");
+    }
   };
 
   const expiringSoon = items.filter((i) => daysUntil(i.expiry_date) <= 2).length;
@@ -69,15 +64,7 @@ function Pantry() {
   const [savedTotal, setSavedTotal] = useState(0);
   useEffect(() => {
     const since = new Date(Date.now() - 30 * 86400000).toISOString();
-    supabase
-      .from("food_items")
-      .select("price")
-      .eq("status", "used")
-      .gte("updated_at", since)
-      .then(({ data }) => {
-        const t = (data || []).reduce((s, r: any) => s + Number(r.price || 0), 0);
-        setSavedTotal(t);
-      });
+    sumUsedSince(since).then(setSavedTotal).catch(() => setSavedTotal(0));
   }, [items.length]);
 
   return (

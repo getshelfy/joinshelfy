@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Header } from "@/components/header";
-import { supabase } from "@/integrations/supabase/client";
+import { listClosedSince } from "@/lib/db";
 import { categoryEmoji } from "@/lib/food";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 
@@ -32,11 +32,7 @@ function InsightsPage() {
   useEffect(() => {
     (async () => {
       const since = new Date(Date.now() - 30 * 86400000).toISOString();
-      const { data } = await supabase
-        .from("food_items")
-        .select("category,price,status,updated_at")
-        .in("status", ["used", "wasted"])
-        .gte("updated_at", since);
+      const data = await listClosedSince(since).catch(() => []);
       const rows = data || [];
       const saved = rows.filter((r: any) => r.status === "used").reduce((s, r: any) => s + Number(r.price || 0), 0);
       setMoneySaved(saved);

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Header } from "@/components/header";
 import { supabase } from "@/integrations/supabase/client";
+import { insertItems } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,21 +67,24 @@ function SingleAdd() {
       return;
     }
     setSaving(true);
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) return;
-    const { error } = await supabase.from("food_items").insert({
-      user_id: u.user.id,
-      name,
-      brand: brand || null,
-      category,
-      location,
-      expiry_date: expiry,
-      price: price ? Number(price) : 0,
-    });
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success("Added to your pantry 🌿");
-    navigate({ to: "/" });
+    try {
+      await insertItems([
+        {
+          name,
+          brand: brand || null,
+          category,
+          location,
+          expiry_date: expiry,
+          price: price ? Number(price) : 0,
+        },
+      ]);
+      toast.success("Added to your pantry 🌿");
+      navigate({ to: "/" });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (step === "barcode") {
@@ -523,21 +527,23 @@ function BulkAdd() {
     const valid = rows.filter((r) => r.name && r.expiry_date);
     if (!valid.length) return toast.error("Add at least one row with a name and date");
     setSaving(true);
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) return;
-    const payload = valid.map((r) => ({
-      user_id: u.user!.id,
-      name: r.name,
-      category: r.category,
-      location: r.location,
-      expiry_date: r.expiry_date,
-      price: r.price ? Number(r.price) : 0,
-    }));
-    const { error } = await supabase.from("food_items").insert(payload);
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success(`Added ${valid.length} items`);
-    navigate({ to: "/" });
+    try {
+      await insertItems(
+        valid.map((r) => ({
+          name: r.name,
+          category: r.category,
+          location: r.location,
+          expiry_date: r.expiry_date,
+          price: r.price ? Number(r.price) : 0,
+        })),
+      );
+      toast.success(`Added ${valid.length} items`);
+      navigate({ to: "/" });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

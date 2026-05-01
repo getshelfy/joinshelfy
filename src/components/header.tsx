@@ -2,10 +2,12 @@ import { Link } from "@tanstack/react-router";
 import { LogOut, Sprout } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
+import { endGuest, isGuest } from "@/lib/guest";
 
 export function Header({ title, subtitle }: { title: string; subtitle?: string }) {
   const navigate = useNavigate();
   const handleSignOut = async () => {
+    if (isGuest()) endGuest();
     await supabase.auth.signOut();
     navigate({ to: "/login" });
   };
