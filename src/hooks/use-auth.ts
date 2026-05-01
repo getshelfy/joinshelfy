@@ -46,6 +46,7 @@ export function useAuth() {
         pauseGuest();
         setUser(data.session.user);
         setGuest(false);
+        syncTimezone(data.session.user);
       } else {
         checkGuest();
       }
