@@ -118,7 +118,7 @@ function InsightsPage() {
           </div>
           <div className="mt-3 h-44">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weekly} barGap={4} barCategoryGap="22%" margin={{ top: 8, right: 4, left: -16, bottom: 0 }}>
+              <BarChart data={weekly} barGap={4} barCategoryGap="22%" margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid vertical={false} stroke="currentColor" strokeOpacity={0.08} />
                 <XAxis
                   dataKey="week"
@@ -131,7 +131,7 @@ function InsightsPage() {
                   tickLine={false}
                   axisLine={false}
                   allowDecimals={false}
-                  width={28}
+                  width={32}
                 />
                 <Tooltip
                   cursor={{ fill: "currentColor", fillOpacity: 0.04 }}
