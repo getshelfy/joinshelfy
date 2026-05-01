@@ -17,12 +17,22 @@ export function useAuth() {
       if (g) setUser(guestUser() as unknown as User);
     };
 
+    const syncTimezone = (u: User) => {
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (tz && (u.user_metadata as any)?.timezone !== tz) {
+          supabase.auth.updateUser({ data: { timezone: tz } }).catch(() => {});
+        }
+      } catch {}
+    };
+
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
       setSession(s);
       if (s?.user) {
         pauseGuest();
         setUser(s.user);
         setGuest(false);
+        syncTimezone(s.user);
       } else if (isGuest()) {
         setUser(guestUser() as unknown as User);
         setGuest(true);
@@ -36,6 +46,7 @@ export function useAuth() {
         pauseGuest();
         setUser(data.session.user);
         setGuest(false);
+        syncTimezone(data.session.user);
       } else {
         checkGuest();
       }
