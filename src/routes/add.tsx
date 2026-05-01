@@ -488,8 +488,8 @@ function ExpiryCapture({ productName, onDate }: { productName: string; onDate: (
         </div>
 
         <div className="absolute inset-x-0 top-0 p-4 text-center">
-          <p className="inline-block rounded-full bg-black/55 px-3 py-1.5 text-xs text-white">
-            Flip the pack — frame the use-by date
+          <p className="inline-block rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-lg">
+            Step 2 of 2 — Now snap a photo of the expiry date
           </p>
         </div>
 
