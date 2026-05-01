@@ -476,10 +476,11 @@ function ExpiryCapture({ productName, onDate }: { productName: string; onDate: (
 
         <div className="pointer-events-none absolute inset-0">
           <div
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-xl"
+            className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-xl"
             style={{
-              width: "82%",
-              aspectRatio: "2.4 / 1",
+              top: "38%",
+              width: "70%",
+              aspectRatio: "3 / 1",
               boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)",
               border: "3px solid #2D9B6F",
             }}
