@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { seedDemoData } from "@/lib/seed";
-import { seedGuestDemo } from "@/lib/db";
 import { startGuest, isGuest } from "@/lib/guest";
 import { Sprout } from "lucide-react";
 
@@ -41,8 +39,7 @@ function LoginPage() {
         });
         if (error) throw error;
         if (data.user) {
-          await seedDemoData(data.user.id);
-          toast.success("Welcome to Shelfy! We've added a few items to get you started.");
+          toast.success("Welcome to Shelfy!");
           navigate({ to: "/" });
         }
       } else {
@@ -78,15 +75,6 @@ function LoginPage() {
 
   const handleGuest = async () => {
     startGuest();
-    // Seed demo data once for new guests
-    const hasItems = JSON.parse(localStorage.getItem("shelfy:guest:items") || "[]").length > 0;
-    if (!hasItems) {
-      try {
-        await seedGuestDemo();
-      } catch {
-        // ignore
-      }
-    }
     toast.success("You're in as a guest. Data stays on this device.");
     navigate({ to: "/" });
   };
