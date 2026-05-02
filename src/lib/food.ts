@@ -59,6 +59,14 @@ export function urgencyLabel(days: number) {
   return `${days} days left`;
 }
 
+// Categories that perish quickly and benefit from being suggested in recipes.
+// Categories like Snacks, Drinks, Bread (Grains) and Other are typically
+// pantry items the user doesn't need recipe ideas for.
+const RECIPE_DEFAULT_OFF = new Set(["Snacks", "Drinks", "Grains", "Other"]);
+export function defaultIncludeInRecipes(category: string): boolean {
+  return !RECIPE_DEFAULT_OFF.has(category);
+}
+
 export function guessCategory(name: string, off?: { categories?: string }): string {
   const text = `${name} ${off?.categories || ""}`.toLowerCase();
   const map: Array<[string, string]> = [
