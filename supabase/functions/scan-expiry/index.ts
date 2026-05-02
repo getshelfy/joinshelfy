@@ -39,6 +39,7 @@ Deno.serve(async (req) => {
                   `2) Two-digit years like "25", "26", "27" mean 20XX (e.g. "25" = 2025), NEVER 21XX or 19XX. ` +
                   `3) Non-US packaging usually uses DD/MM/YYYY (day first). US packaging often uses MM/DD/YYYY. Pick the format that yields a plausible near-future date. ` +
                   `4) The resulting year MUST be between ${currentYear} and ${currentYear + 5}. If parsing gives a year outside that range, you misread it — re-examine. ` +
+                  `5) If NO year is printed (e.g. only "DD/MM" or "15 MAR"), infer the year as the next future occurrence of that day/month from today (${todayIso}). If the day/month has already passed this year, use next year (${currentYear + 1}); otherwise use ${currentYear}. NEVER default to a past year. ` +
                   `5) Also report the rawText exactly as printed so we can verify. ` +
                   `Return the result via the tool.`,
               },
@@ -118,6 +119,13 @@ Deno.serve(async (req) => {
       if (y < minYear || y > maxYear) {
         args.date = "";
       } else {
+        // If the AI returned a date that's already in the past (likely missing year on packaging,
+        // defaulted to current year), bump to next year — food expiries are always in the future.
+        const candidate = new Date(`${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}T00:00:00Z`);
+        const todayUtc = new Date(`${todayIso}T00:00:00Z`);
+        if (candidate.getTime() < todayUtc.getTime() && y + 1 <= maxYear) {
+          y = y + 1;
+        }
         args.date = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
       }
     }
