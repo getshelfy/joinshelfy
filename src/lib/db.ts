@@ -9,17 +9,20 @@ import {
   writeGuestItems,
   type GuestItem,
 } from "./guest";
+import { defaultIncludeInRecipes } from "./food";
 
 export type FoodRow = {
   id: string;
   name: string;
   category: string;
   location: string;
-  expiry_date: string;
+  expiry_date: string | null;
   price: number | null;
   status: string;
   brand?: string | null;
   notes?: string | null;
+  is_pantry_staple?: boolean;
+  include_in_recipes?: boolean;
   updated_at?: string;
 };
 
@@ -28,9 +31,11 @@ export type NewFoodRow = {
   brand?: string | null;
   category: string;
   location: string;
-  expiry_date: string;
+  expiry_date: string | null;
   price?: number | null;
   notes?: string | null;
+  is_pantry_staple?: boolean;
+  include_in_recipes?: boolean;
 };
 
 function nowIso() {
@@ -42,17 +47,37 @@ function uuid() {
   return "g-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
+const SELECT_COLS = "id,name,category,location,expiry_date,price,status,is_pantry_staple,include_in_recipes";
+
 export async function listActiveItems(): Promise<FoodRow[]> {
+  // Returns only items being tracked for expiry — pantry staples excluded.
   if (isGuest()) {
     return readGuestItems()
-      .filter((i) => i.status === "active")
-      .sort((a, b) => a.expiry_date.localeCompare(b.expiry_date));
+      .filter((i) => i.status === "active" && !i.is_pantry_staple)
+      .sort((a, b) => (a.expiry_date || "").localeCompare(b.expiry_date || ""));
   }
   const { data, error } = await supabase
     .from("food_items")
-    .select("id,name,category,location,expiry_date,price,status")
+    .select(SELECT_COLS)
     .eq("status", "active")
+    .eq("is_pantry_staple", false)
     .order("expiry_date", { ascending: true });
+  if (error) throw error;
+  return (data as FoodRow[]) || [];
+}
+
+export async function listPantryStaples(): Promise<FoodRow[]> {
+  if (isGuest()) {
+    return readGuestItems()
+      .filter((i) => i.status === "active" && i.is_pantry_staple)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+  const { data, error } = await supabase
+    .from("food_items")
+    .select(SELECT_COLS)
+    .eq("status", "active")
+    .eq("is_pantry_staple", true)
+    .order("name", { ascending: true });
   if (error) throw error;
   return (data as FoodRow[]) || [];
 }
@@ -76,6 +101,8 @@ export async function insertItems(rows: NewFoodRow[]): Promise<void> {
         price: r.price ?? 0,
         status: "active",
         notes: r.notes ?? null,
+        is_pantry_staple: r.is_pantry_staple ?? false,
+        include_in_recipes: r.include_in_recipes ?? defaultIncludeInRecipes(r.category),
         created_at: t,
         updated_at: t,
       })),
@@ -94,6 +121,8 @@ export async function insertItems(rows: NewFoodRow[]): Promise<void> {
     expiry_date: r.expiry_date,
     price: r.price ?? 0,
     notes: r.notes ?? null,
+    is_pantry_staple: r.is_pantry_staple ?? false,
+    include_in_recipes: r.include_in_recipes ?? defaultIncludeInRecipes(r.category),
   }));
   const { error } = await supabase.from("food_items").insert(payload);
   if (error) throw error;
@@ -107,6 +136,17 @@ export async function updateItemStatus(id: string, status: "used" | "wasted" | "
     return;
   }
   const { error } = await supabase.from("food_items").update({ status }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function updateItemRecipeFlag(id: string, include: boolean): Promise<void> {
+  if (isGuest()) {
+    const items = readGuestItems();
+    const t = nowIso();
+    writeGuestItems(items.map((i) => (i.id === id ? { ...i, include_in_recipes: include, updated_at: t } : i)));
+    return;
+  }
+  const { error } = await supabase.from("food_items").update({ include_in_recipes: include }).eq("id", id);
   if (error) throw error;
 }
 
@@ -139,22 +179,37 @@ export async function sumUsedSince(sinceIso: string): Promise<number> {
   return (data || []).reduce((s, r: any) => s + Number(r.price || 0), 0);
 }
 
-export async function listActiveForRecipes(limit = 8): Promise<Array<{ name: string; category: string; expiry_date: string }>> {
+export type RecipeIngredient = { name: string; category: string; expiry_date: string | null; pantry_staple: boolean };
+
+export async function listItemsForRecipes(limit = 8): Promise<{ expiring: RecipeIngredient[]; staples: RecipeIngredient[] }> {
   if (isGuest()) {
-    return readGuestItems()
-      .filter((i) => i.status === "active")
-      .sort((a, b) => a.expiry_date.localeCompare(b.expiry_date))
+    const all = readGuestItems().filter((i) => i.status === "active" && i.include_in_recipes !== false);
+    const expiring = all
+      .filter((i) => !i.is_pantry_staple)
+      .sort((a, b) => (a.expiry_date || "").localeCompare(b.expiry_date || ""))
       .slice(0, limit)
-      .map((i) => ({ name: i.name, category: i.category, expiry_date: i.expiry_date }));
+      .map((i) => ({ name: i.name, category: i.category, expiry_date: i.expiry_date, pantry_staple: false }));
+    const staples = all
+      .filter((i) => i.is_pantry_staple)
+      .map((i) => ({ name: i.name, category: i.category, expiry_date: null, pantry_staple: true }));
+    return { expiring, staples };
   }
   const { data, error } = await supabase
     .from("food_items")
-    .select("name,category,expiry_date")
+    .select("name,category,expiry_date,is_pantry_staple,include_in_recipes")
     .eq("status", "active")
-    .order("expiry_date", { ascending: true })
-    .limit(limit);
+    .eq("include_in_recipes", true);
   if (error) throw error;
-  return (data as any) || [];
+  const rows = (data as any[]) || [];
+  const expiring = rows
+    .filter((r) => !r.is_pantry_staple)
+    .sort((a, b) => (a.expiry_date || "").localeCompare(b.expiry_date || ""))
+    .slice(0, limit)
+    .map((r) => ({ name: r.name, category: r.category, expiry_date: r.expiry_date, pantry_staple: false }));
+  const staples = rows
+    .filter((r) => r.is_pantry_staple)
+    .map((r) => ({ name: r.name, category: r.category, expiry_date: null, pantry_staple: true }));
+  return { expiring, staples };
 }
 
 export function seedGuestDemo() {

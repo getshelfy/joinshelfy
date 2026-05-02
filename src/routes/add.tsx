@@ -7,11 +7,12 @@ import { insertItems } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CATEGORIES, LOCATIONS, categoryEmoji, guessCategory, locationEmoji, locationLabel } from "@/lib/food";
+import { CATEGORIES, LOCATIONS, categoryEmoji, defaultIncludeInRecipes, guessCategory, locationEmoji, locationLabel } from "@/lib/food";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, X, Check, Keyboard, Camera } from "lucide-react";
+import { Loader2, Plus, Trash2, X, Check, Keyboard, Camera, CalendarOff, CalendarCheck } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { DecodeHintType, BarcodeFormat } from "@zxing/library";
 
@@ -53,7 +54,7 @@ const expiryOverlayStyle = {
   border: "3px solid var(--primary)",
 } satisfies React.CSSProperties;
 
-type Step = "barcode" | "expiry" | "details";
+type Step = "barcode" | "hasExpiry" | "expiry" | "details";
 
 function SingleAdd() {
   const navigate = useNavigate();
@@ -64,14 +65,19 @@ function SingleAdd() {
   const [location, setLocation] = useState<string>("fridge");
   const [price, setPrice] = useState("");
   const [expiry, setExpiry] = useState("");
+  const [isPantryStaple, setIsPantryStaple] = useState(false);
+  const [includeInRecipes, setIncludeInRecipes] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const goExpiry = () => setStep("expiry");
-  const goDetails = () => setStep("details");
-
-  const save = async () => {
-    if (!name || !expiry) {
-      toast.error("Name and expiry date are required");
+  const save = async (override?: { isPantryStaple?: boolean; includeInRecipes?: boolean }) => {
+    const staple = override?.isPantryStaple ?? isPantryStaple;
+    const include = override?.includeInRecipes ?? includeInRecipes;
+    if (!name) {
+      toast.error("Name is required");
+      return;
+    }
+    if (!staple && !expiry) {
+      toast.error("Expiry date is required");
       return;
     }
     setSaving(true);
@@ -82,11 +88,13 @@ function SingleAdd() {
           brand: brand || null,
           category,
           location,
-          expiry_date: expiry,
+          expiry_date: staple ? null : expiry,
           price: price ? Number(price) : 0,
+          is_pantry_staple: staple,
+          include_in_recipes: include,
         },
       ]);
-      toast.success("Added to your pantry 🌿");
+      toast.success(staple ? "Added to Pantry Staples 🌿" : "Added to your pantry 🌿");
       navigate({ to: "/" });
     } catch (err: any) {
       toast.error(err.message || "Failed to save");
@@ -102,16 +110,60 @@ function SingleAdd() {
           setName(p.name);
           setBrand(p.brand);
           setCategory(p.category);
-          goExpiry();
+          setIncludeInRecipes(defaultIncludeInRecipes(p.category));
+          setStep("hasExpiry");
         }}
         onSkipManual={(productName) => {
           if (productName) {
             setName(productName);
-            setCategory(guessCategory(productName));
+            const cat = guessCategory(productName);
+            setCategory(cat);
+            setIncludeInRecipes(defaultIncludeInRecipes(cat));
           }
-          goExpiry();
+          setStep("hasExpiry");
         }}
       />
+    );
+  }
+
+  if (step === "hasExpiry") {
+    return (
+      <div className="rounded-2xl border bg-card p-5 space-y-4">
+        <div>
+          <h3 className="font-serif text-lg">Does this item have an expiry date?</h3>
+          {name && <p className="text-sm text-muted-foreground mt-1">{name}</p>}
+        </div>
+        <div className="grid gap-2">
+          <Button
+            className="h-auto py-4 justify-start"
+            onClick={() => {
+              setIsPantryStaple(false);
+              setStep("expiry");
+            }}
+          >
+            <CalendarCheck className="mr-3 h-5 w-5 shrink-0" />
+            <span className="text-left">
+              <span className="block font-medium">Yes, scan it</span>
+              <span className="block text-xs opacity-80">We'll remind you before it expires</span>
+            </span>
+          </Button>
+          <Button
+            variant="secondary"
+            className="h-auto py-4 justify-start"
+            onClick={() => {
+              setIsPantryStaple(true);
+              save({ isPantryStaple: true });
+            }}
+            disabled={saving}
+          >
+            <CalendarOff className="mr-3 h-5 w-5 shrink-0" />
+            <span className="text-left">
+              <span className="block font-medium">No expiry date</span>
+              <span className="block text-xs opacity-80">Save to Pantry Staples — no reminders</span>
+            </span>
+          </Button>
+        </div>
+      </div>
     );
   }
 
@@ -121,7 +173,7 @@ function SingleAdd() {
         productName={name}
         onDate={(d) => {
           setExpiry(d);
-          goDetails();
+          setStep("details");
         }}
       />
     );
@@ -141,7 +193,13 @@ function SingleAdd() {
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label>Category</Label>
-          <Select value={category} onValueChange={setCategory}>
+          <Select
+            value={category}
+            onValueChange={(v) => {
+              setCategory(v);
+              setIncludeInRecipes(defaultIncludeInRecipes(v));
+            }}
+          >
             <SelectTrigger><SelectValue>{category ? `${categoryEmoji(category)} ${category}` : undefined}</SelectValue></SelectTrigger>
             <SelectContent>
               {CATEGORIES.map((c) => (
@@ -166,7 +224,14 @@ function SingleAdd() {
         <Label>Price (optional)</Label>
         <Input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="2.50" />
       </div>
-      <Button onClick={save} className="w-full h-11" disabled={saving}>
+      <div className="flex items-center justify-between rounded-xl border bg-card-soft px-3 py-2.5">
+        <div className="min-w-0">
+          <p className="text-sm font-medium">Suggest recipes for this item</p>
+          <p className="text-xs text-muted-foreground">Include it when generating recipe ideas</p>
+        </div>
+        <Switch checked={includeInRecipes} onCheckedChange={setIncludeInRecipes} />
+      </div>
+      <Button onClick={() => save()} className="w-full h-11" disabled={saving}>
         {saving ? "Saving..." : "Add to pantry"}
       </Button>
     </div>
@@ -191,51 +256,60 @@ function beep() {
   } catch {}
 }
 
+// Words that indicate a product_name is actually a marketing slogan
+// rather than the actual product.
+const SLOGAN_WORDS = /\b(taste|delicious|creamy|smooth|perfect|enjoy|love|original recipe|new|amazing|crunchy|tasty|fresh and|finest|premium quality)\b/;
+
+function looksLikeSlogan(s: string): boolean {
+  const t = s.toLowerCase().trim();
+  if (t.length > 60) return true;
+  if (/[!?]/.test(t)) return true;
+  if (SLOGAN_WORDS.test(t)) return true;
+  return false;
+}
+
 async function lookupBarcode(code: string): Promise<FoundProduct | null> {
   try {
     const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
     const data = await res.json();
-    if (data.status === 1) {
-      const p = data.product;
-      const brand = (p.brands || "").split(",")[0]?.trim() || "";
+    if (data.status !== 1) return null;
+    const p = data.product;
+    const brand = (p.brands || "").split(",")[0]?.trim() || "";
 
-      // OpenFoodFacts product_name is sometimes a marketing slogan
-      // (e.g. "Fresh and creamy taste"). Try multiple fields and pick
-      // the best candidate that looks like an actual product name.
-      const candidates: string[] = [
-        p.abbreviated_product_name,
-        p.product_name_en,
-        p.product_name,
-        p.product_name_fr,
-        p.generic_name_en,
-        p.generic_name,
-      ].filter((s): s is string => typeof s === "string" && s.trim().length > 0);
+    // Prefer fields most likely to contain the actual product name.
+    // Note: do NOT use generic_name first — it can be too generic
+    // (e.g. "milk" when the product is actually chicken broth in a milk-style carton).
+    const candidates: string[] = [
+      p.abbreviated_product_name,
+      p.product_name_en,
+      p.product_name,
+      p.product_name_fr,
+    ].filter((s): s is string => typeof s === "string" && s.trim().length > 1);
 
-      const looksLikeSlogan = (s: string) => {
-        const t = s.toLowerCase().trim();
-        if (t.length > 60) return true;
-        // Marketing phrases tend to contain these words/punctuation
-        if (/[!?]/.test(t)) return true;
-        if (/\b(taste|delicious|creamy|smooth|perfect|enjoy|love|original recipe|new|amazing|crunchy|tasty)\b/.test(t)) return true;
-        return false;
-      };
+    let name = candidates.find((c) => !looksLikeSlogan(c)) || candidates[0] || "";
+    name = name.trim();
 
-      let name = candidates.find((c) => !looksLikeSlogan(c)) || candidates[0] || "";
-      name = name.trim();
-
-      // If the name doesn't already include the brand, prepend it for clarity.
-      if (brand && name && !name.toLowerCase().includes(brand.toLowerCase())) {
-        name = `${brand} ${name}`;
-      }
-      // Fall back to brand alone if we have nothing usable.
-      if (!name && brand) name = brand;
-
-      return {
-        name,
-        brand,
-        category: guessCategory(name, { categories: p.categories || "" }),
-      };
+    // If we couldn't find anything decent, try generic_name as a fallback
+    // — but only if it doesn't look like a slogan.
+    if (!name) {
+      const generic = [p.generic_name_en, p.generic_name].find(
+        (s) => typeof s === "string" && s.trim().length > 1 && !looksLikeSlogan(s),
+      );
+      if (generic) name = generic.trim();
     }
+
+    // Prepend brand for clarity.
+    if (brand && name && !name.toLowerCase().includes(brand.toLowerCase())) {
+      name = `${brand} ${name}`;
+    }
+    if (!name && brand) name = brand;
+    if (!name) return null;
+
+    return {
+      name,
+      brand,
+      category: guessCategory(name, { categories: p.categories || "" }),
+    };
   } catch {}
   return null;
 }
@@ -265,14 +339,12 @@ function BarcodeScanner({
       BarcodeFormat.CODE_39,
     ]);
     hints.set(DecodeHintType.TRY_HARDER, true);
-    // Faster scan interval (default is 500ms) for snappier detection
     const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 80, delayBetweenScanSuccess: 80 });
     let controls: { stop: () => void } | null = null;
     let activeStream: MediaStream | null = null;
 
     (async () => {
       try {
-        // Request the highest practical resolution from the rear camera for crisp barcode reads
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: "environment" },
@@ -284,7 +356,6 @@ function BarcodeScanner({
         });
         activeStream = stream;
 
-        // Try to enable continuous autofocus where supported
         try {
           const track = stream.getVideoTracks()[0];
           const caps: any = track.getCapabilities?.() ?? {};
@@ -335,7 +406,6 @@ function BarcodeScanner({
       <div className="relative overflow-hidden rounded-2xl bg-black aspect-square sm:aspect-[3/4]">
         <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" muted playsInline />
 
-        {/* Dim overlay with cutout */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute inset-0 bg-black/40" />
           <div
@@ -347,17 +417,14 @@ function BarcodeScanner({
               border: "3px solid #2D9B6F",
             }}
           >
-            {/* Corner accents */}
             <span className="absolute -left-1 -top-1 h-5 w-5 border-l-4 border-t-4 border-white rounded-tl-lg" />
             <span className="absolute -right-1 -top-1 h-5 w-5 border-r-4 border-t-4 border-white rounded-tr-lg" />
             <span className="absolute -left-1 -bottom-1 h-5 w-5 border-l-4 border-b-4 border-white rounded-bl-lg" />
             <span className="absolute -right-1 -bottom-1 h-5 w-5 border-r-4 border-b-4 border-white rounded-br-lg" />
-            {/* Scan line */}
             <span className="absolute left-2 right-2 top-1/2 h-[2px] bg-primary/90 shadow-[0_0_12px_rgba(45,155,111,0.9)] animate-pulse" />
           </div>
         </div>
 
-        {/* Top instruction */}
         <div className="absolute inset-x-0 top-0 p-4 text-center">
           <p className="inline-block rounded-full bg-black/55 px-3 py-1.5 text-xs text-white">
             Point at the barcode
@@ -560,21 +627,39 @@ function ExpiryCapture({ productName, onDate }: { productName: string; onDate: (
   );
 }
 
-type BulkRow = { name: string; category: string; location: string; expiry_date: string; price: string };
+type BulkRow = {
+  name: string;
+  category: string;
+  location: string;
+  expiry_date: string;
+  price: string;
+  is_pantry_staple: boolean;
+  include_in_recipes: boolean;
+};
+
+function newBulkRow(): BulkRow {
+  return {
+    name: "",
+    category: "Other",
+    location: "fridge",
+    expiry_date: "",
+    price: "",
+    is_pantry_staple: false,
+    include_in_recipes: defaultIncludeInRecipes("Other"),
+  };
+}
 
 function BulkAdd() {
   const navigate = useNavigate();
-  const [rows, setRows] = useState<BulkRow[]>([
-    { name: "", category: "Other", location: "fridge", expiry_date: "", price: "" },
-  ]);
+  const [rows, setRows] = useState<BulkRow[]>([newBulkRow()]);
   const [saving, setSaving] = useState(false);
 
   const update = (i: number, patch: Partial<BulkRow>) =>
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
 
   const save = async () => {
-    const valid = rows.filter((r) => r.name && r.expiry_date);
-    if (!valid.length) return toast.error("Add at least one row with a name and date");
+    const valid = rows.filter((r) => r.name && (r.is_pantry_staple || r.expiry_date));
+    if (!valid.length) return toast.error("Add at least one row with a name and date (or mark it as a pantry staple)");
     setSaving(true);
     try {
       await insertItems(
@@ -582,8 +667,10 @@ function BulkAdd() {
           name: r.name,
           category: r.category,
           location: r.location,
-          expiry_date: r.expiry_date,
+          expiry_date: r.is_pantry_staple ? null : r.expiry_date,
           price: r.price ? Number(r.price) : 0,
+          is_pantry_staple: r.is_pantry_staple,
+          include_in_recipes: r.include_in_recipes,
         })),
       );
       toast.success(`Added ${valid.length} items`);
@@ -614,8 +701,11 @@ function BulkAdd() {
             </button>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <Select value={row.category} onValueChange={(v) => update(i, { category: v })}>
-          <SelectTrigger><SelectValue>{row.category ? `${categoryEmoji(row.category)} ${row.category}` : undefined}</SelectValue></SelectTrigger>
+            <Select
+              value={row.category}
+              onValueChange={(v) => update(i, { category: v, include_in_recipes: defaultIncludeInRecipes(v) })}
+            >
+              <SelectTrigger><SelectValue>{row.category ? `${categoryEmoji(row.category)} ${row.category}` : undefined}</SelectValue></SelectTrigger>
               <SelectContent>
                 {CATEGORIES.map((c) => (
                   <SelectItem key={c.name} value={c.name}>{c.emoji} {c.name}</SelectItem>
@@ -623,23 +713,44 @@ function BulkAdd() {
               </SelectContent>
             </Select>
             <Select value={row.location} onValueChange={(v) => update(i, { location: v })}>
-          <SelectTrigger><SelectValue>{row.location ? `${locationEmoji(row.location)} ${locationLabel(row.location)}` : undefined}</SelectValue></SelectTrigger>
+              <SelectTrigger><SelectValue>{row.location ? `${locationEmoji(row.location)} ${locationLabel(row.location)}` : undefined}</SelectValue></SelectTrigger>
               <SelectContent>
                 {LOCATIONS.map((l) => (
-              <SelectItem key={l} value={l}>{locationEmoji(l)} {locationLabel(l)}</SelectItem>
+                  <SelectItem key={l} value={l}>{locationEmoji(l)} {locationLabel(l)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <Input type="date" value={row.expiry_date} onChange={(e) => update(i, { expiry_date: e.target.value })} />
+            <Input
+              type="date"
+              value={row.expiry_date}
+              disabled={row.is_pantry_staple}
+              onChange={(e) => update(i, { expiry_date: e.target.value })}
+            />
             <Input type="number" step="0.01" placeholder="Price" value={row.price} onChange={(e) => update(i, { price: e.target.value })} />
+          </div>
+          <div className="flex items-center justify-between rounded-lg bg-card-soft px-2.5 py-1.5 text-xs">
+            <label className="flex items-center gap-2">
+              <Switch
+                checked={row.is_pantry_staple}
+                onCheckedChange={(v) => update(i, { is_pantry_staple: v })}
+              />
+              Pantry staple (no expiry)
+            </label>
+            <label className="flex items-center gap-2">
+              <Switch
+                checked={row.include_in_recipes}
+                onCheckedChange={(v) => update(i, { include_in_recipes: v })}
+              />
+              In recipes
+            </label>
           </div>
         </div>
       ))}
       <Button
         variant="secondary"
-        onClick={() => setRows([...rows, { name: "", category: "Other", location: "fridge", expiry_date: "", price: "" }])}
+        onClick={() => setRows([...rows, newBulkRow()])}
         className="w-full"
       >
         <Plus className="mr-1 h-4 w-4" /> Another item

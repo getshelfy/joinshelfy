@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Header } from "@/components/header";
-import { listActiveItems, sumUsedSince, updateItemStatus, type FoodRow } from "@/lib/db";
+import { listActiveItems, listPantryStaples, sumUsedSince, updateItemStatus, type FoodRow } from "@/lib/db";
 import { categoryEmoji, daysUntil, urgencyLabel, urgencyOf } from "@/lib/food";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -31,12 +31,14 @@ function PantryPage() {
 
 function Pantry() {
   const [items, setItems] = useState<Item[]>([]);
+  const [staples, setStaples] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     try {
-      const data = await listActiveItems();
+      const [data, st] = await Promise.all([listActiveItems(), listPantryStaples()]);
       setItems(data);
+      setStaples(st);
     } catch (err: any) {
       toast.error(err.message || "Failed to load");
     } finally {
@@ -52,29 +54,29 @@ function Pantry() {
     try {
       await updateItemStatus(id, status);
       setItems((prev) => prev.filter((i) => i.id !== id));
+      setStaples((prev) => prev.filter((i) => i.id !== id));
       toast.success(status === "used" ? "Nice — used it up! 🌱" : "Logged as wasted");
     } catch (err: any) {
       toast.error(err.message || "Failed");
     }
   };
 
-  const expiringSoon = items.filter((i) => daysUntil(i.expiry_date) <= 2).length;
+  const expiringSoon = items.filter((i) => i.expiry_date && daysUntil(i.expiry_date) <= 2).length;
   const total = items.length;
-  // money saved estimate: sum of prices of items used in last 30 days
-  const [savedTotal, setSavedTotal] = useState(0);
+  const [avoidedTotal, setAvoidedTotal] = useState(0);
   useEffect(() => {
     const since = new Date(Date.now() - 30 * 86400000).toISOString();
-    sumUsedSince(since).then(setSavedTotal).catch(() => setSavedTotal(0));
+    sumUsedSince(since).then(setAvoidedTotal).catch(() => setAvoidedTotal(0));
   }, [items.length]);
 
   return (
     <>
-      <Header title="Your pantry" subtitle="Use it up, save money, waste less." />
+      <Header title="Your pantry" subtitle="Use it up, avoid waste, save the planet." />
 
       <section className="grid grid-cols-3 gap-2 px-5">
         <Stat value={expiringSoon} label="Expiring soon" tone="urgent" />
         <Stat value={total} label="Items tracked" tone="neutral" />
-        <Stat value={`£${savedTotal.toFixed(0)}`} label="Saved (30d)" tone="fresh" />
+        <Stat value={`£${avoidedTotal.toFixed(0)}`} label="Waste avoided (30d)" tone="fresh" />
       </section>
 
       {loading ? (
@@ -86,7 +88,7 @@ function Pantry() {
       ) : (
         <ul className="mt-6 space-y-2.5 px-5">
           {items.map((item) => {
-            const days = daysUntil(item.expiry_date);
+            const days = item.expiry_date ? daysUntil(item.expiry_date) : 999;
             const u = urgencyOf(days);
             const tone =
               u === "urgent"
@@ -141,6 +143,35 @@ function Pantry() {
             );
           })}
         </ul>
+      )}
+
+      {staples.length > 0 && (
+        <section className="mt-8 px-5 pb-4">
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-serif text-lg">Pantry staples</h2>
+            <span className="text-xs text-muted-foreground">No expiry tracking</span>
+          </div>
+          <ul className="mt-2 space-y-2">
+            {staples.map((item) => (
+              <li key={item.id} className="rounded-2xl border bg-card-soft p-3 flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-card text-xl">
+                  {categoryEmoji(item.category)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="truncate font-medium text-sm">{item.name}</h3>
+                  <p className="text-xs text-muted-foreground">Used in recipes</p>
+                </div>
+                <button
+                  onClick={() => markStatus(item.id, "used")}
+                  aria-label="Ran out"
+                  className="text-xs px-2.5 py-1 rounded-full bg-card hover:bg-muted"
+                >
+                  Ran out
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </>
   );

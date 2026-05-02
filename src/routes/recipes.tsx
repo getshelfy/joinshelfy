@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Header } from "@/components/header";
 import { supabase } from "@/integrations/supabase/client";
-import { listActiveForRecipes } from "@/lib/db";
+import { listItemsForRecipes, type RecipeIngredient } from "@/lib/db";
 import { daysUntil } from "@/lib/food";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Clock, ChefHat, Loader2 } from "lucide-react";
@@ -32,24 +32,27 @@ function RecipesPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasItems, setHasItems] = useState(true);
+  const [staples, setStaples] = useState<RecipeIngredient[]>([]);
 
   const generate = async () => {
     setLoading(true);
     setRecipes([]);
     try {
-      const items = await listActiveForRecipes(8);
-      if (!items || items.length === 0) {
+      const { expiring, staples: stps } = await listItemsForRecipes(8);
+      setStaples(stps);
+      if (!expiring || expiring.length === 0) {
         setHasItems(false);
         return;
       }
       setHasItems(true);
-      const payload = items.map((i) => ({
+      const payload = expiring.map((i) => ({
         name: i.name,
         category: i.category,
-        daysLeft: daysUntil(i.expiry_date),
+        daysLeft: i.expiry_date ? daysUntil(i.expiry_date) : null,
       }));
+      const staplesPayload = stps.map((i) => ({ name: i.name, category: i.category }));
       const { data, error: fnErr } = await supabase.functions.invoke("generate-recipes", {
-        body: { items: payload },
+        body: { items: payload, staples: staplesPayload },
       });
       if (fnErr) throw fnErr;
       if (data?.error) throw new Error(data.error);
@@ -96,6 +99,22 @@ function RecipesPage() {
             <RecipeCard key={i} r={r} />
           ))}
         </div>
+
+        {staples.length > 0 && (
+          <div className="mt-2 mb-6 rounded-2xl border bg-card-soft p-4">
+            <h3 className="font-serif text-base">Also available in your pantry</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Staples factored into the recipes above.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {staples.map((s) => (
+                <span key={s.name} className="inline-flex rounded-full bg-card px-2 py-0.5 text-xs">
+                  {s.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
