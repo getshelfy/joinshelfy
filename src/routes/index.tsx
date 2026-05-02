@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Header } from "@/components/header";
-import { listActiveItems, sumUsedSince, updateItemStatus, type FoodRow } from "@/lib/db";
+import { listActiveItems, listPantryStaples, sumUsedSince, updateItemStatus, type FoodRow } from "@/lib/db";
 import { categoryEmoji, daysUntil, urgencyLabel, urgencyOf } from "@/lib/food";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -31,12 +31,14 @@ function PantryPage() {
 
 function Pantry() {
   const [items, setItems] = useState<Item[]>([]);
+  const [staples, setStaples] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     try {
-      const data = await listActiveItems();
+      const [data, st] = await Promise.all([listActiveItems(), listPantryStaples()]);
       setItems(data);
+      setStaples(st);
     } catch (err: any) {
       toast.error(err.message || "Failed to load");
     } finally {
@@ -52,6 +54,7 @@ function Pantry() {
     try {
       await updateItemStatus(id, status);
       setItems((prev) => prev.filter((i) => i.id !== id));
+      setStaples((prev) => prev.filter((i) => i.id !== id));
       toast.success(status === "used" ? "Nice — used it up! 🌱" : "Logged as wasted");
     } catch (err: any) {
       toast.error(err.message || "Failed");
