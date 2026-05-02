@@ -144,6 +144,35 @@ function Pantry() {
           })}
         </ul>
       )}
+
+      {staples.length > 0 && (
+        <section className="mt-8 px-5 pb-4">
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-serif text-lg">Pantry staples</h2>
+            <span className="text-xs text-muted-foreground">No expiry tracking</span>
+          </div>
+          <ul className="mt-2 space-y-2">
+            {staples.map((item) => (
+              <li key={item.id} className="rounded-2xl border bg-card-soft p-3 flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-card text-xl">
+                  {categoryEmoji(item.category)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="truncate font-medium text-sm">{item.name}</h3>
+                  <p className="text-xs text-muted-foreground">Used in recipes</p>
+                </div>
+                <button
+                  onClick={() => markStatus(item.id, "used")}
+                  aria-label="Ran out"
+                  className="text-xs px-2.5 py-1 rounded-full bg-card hover:bg-muted"
+                >
+                  Ran out
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </>
   );
 }
