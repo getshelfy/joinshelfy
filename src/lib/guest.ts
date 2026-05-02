@@ -28,10 +28,12 @@ export type GuestItem = {
   brand?: string | null;
   category: string;
   location: string;
-  expiry_date: string;
+  expiry_date: string | null;
   price: number | null;
   status: string;
   notes?: string | null;
+  is_pantry_staple?: boolean;
+  include_in_recipes?: boolean;
   created_at: string;
   updated_at: string;
 };
