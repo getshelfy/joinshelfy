@@ -23,7 +23,7 @@ function startOfWeek(d: Date) {
 }
 
 function InsightsPage() {
-  const [moneySaved, setMoneySaved] = useState(0);
+  const [wasteAvoided, setWasteAvoided] = useState(0);
   const [weekly, setWeekly] = useState<Array<{ week: string; used: number; wasted: number }>>([]);
   const [byCategory, setByCategory] = useState<Array<{ category: string; wasted: number }>>([]);
   const [usedCount, setUsedCount] = useState(0);
@@ -34,8 +34,8 @@ function InsightsPage() {
       const since = new Date(Date.now() - 30 * 86400000).toISOString();
       const data = await listClosedSince(since).catch(() => []);
       const rows = data || [];
-      const saved = rows.filter((r: any) => r.status === "used").reduce((s, r: any) => s + Number(r.price || 0), 0);
-      setMoneySaved(saved);
+      const avoided = rows.filter((r: any) => r.status === "used").reduce((s, r: any) => s + Number(r.price || 0), 0);
+      setWasteAvoided(avoided);
       setUsedCount(rows.filter((r: any) => r.status === "used").length);
       setWastedCount(rows.filter((r: any) => r.status === "wasted").length);
 
@@ -80,13 +80,13 @@ function InsightsPage() {
 
   return (
     <>
-      <Header title="Your wins" subtitle="The food you saved, in numbers." />
+      <Header title="Your wins" subtitle="The food you used before it spoiled." />
 
       <section className="px-5">
         <div className="rounded-3xl bg-primary p-5 text-primary-foreground shadow-md">
-          <p className="text-xs uppercase tracking-wide opacity-80">Saved this month</p>
-          <p className="mt-1 font-serif text-4xl font-semibold">£{moneySaved.toFixed(2)}</p>
-          <p className="mt-2 text-sm opacity-90">{message}</p>
+          <p className="text-xs uppercase tracking-wide opacity-80">Waste avoided this month</p>
+          <p className="mt-1 font-serif text-4xl font-semibold">£{wasteAvoided.toFixed(2)}</p>
+          <p className="mt-2 text-sm opacity-90">You avoided wasting £{wasteAvoided.toFixed(2)} of food. {message}</p>
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-2">
