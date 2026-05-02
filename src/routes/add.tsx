@@ -197,11 +197,43 @@ async function lookupBarcode(code: string): Promise<FoundProduct | null> {
     const data = await res.json();
     if (data.status === 1) {
       const p = data.product;
-      const n = p.product_name || p.generic_name || "";
+      const brand = (p.brands || "").split(",")[0]?.trim() || "";
+
+      // OpenFoodFacts product_name is sometimes a marketing slogan
+      // (e.g. "Fresh and creamy taste"). Try multiple fields and pick
+      // the best candidate that looks like an actual product name.
+      const candidates: string[] = [
+        p.abbreviated_product_name,
+        p.product_name_en,
+        p.product_name,
+        p.product_name_fr,
+        p.generic_name_en,
+        p.generic_name,
+      ].filter((s): s is string => typeof s === "string" && s.trim().length > 0);
+
+      const looksLikeSlogan = (s: string) => {
+        const t = s.toLowerCase().trim();
+        if (t.length > 60) return true;
+        // Marketing phrases tend to contain these words/punctuation
+        if (/[!?]/.test(t)) return true;
+        if (/\b(taste|delicious|creamy|smooth|perfect|enjoy|love|original recipe|new|amazing|crunchy|tasty)\b/.test(t)) return true;
+        return false;
+      };
+
+      let name = candidates.find((c) => !looksLikeSlogan(c)) || candidates[0] || "";
+      name = name.trim();
+
+      // If the name doesn't already include the brand, prepend it for clarity.
+      if (brand && name && !name.toLowerCase().includes(brand.toLowerCase())) {
+        name = `${brand} ${name}`;
+      }
+      // Fall back to brand alone if we have nothing usable.
+      if (!name && brand) name = brand;
+
       return {
-        name: n,
-        brand: p.brands || "",
-        category: guessCategory(n, { categories: p.categories || "" }),
+        name,
+        brand,
+        category: guessCategory(name, { categories: p.categories || "" }),
       };
     }
   } catch {}
