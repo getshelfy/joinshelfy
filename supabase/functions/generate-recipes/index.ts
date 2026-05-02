@@ -7,20 +7,28 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const { items } = await req.json();
+    const { items, staples } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not set");
 
     const itemList = (items || [])
-      .map((i: any) => `- ${i.name} (${i.category}, expires in ${i.daysLeft} day(s))`)
+      .map((i: any) => `- ${i.name} (${i.category}${i.daysLeft != null ? `, expires in ${i.daysLeft} day(s)` : ""})`)
+      .join("\n");
+
+    const staplesList = (staples || [])
+      .map((s: any) => `- ${s.name} (${s.category})`)
       .join("\n");
 
     const systemPrompt = `You are Shelfy, a warm and friendly home cook who helps people use up food before it goes to waste. Suggest practical recipes using ingredients people already have. Be encouraging and never preachy.`;
 
+    const staplesBlock = staplesList
+      ? `\n\nThe user also has these pantry staples always available — feel free to use them, but don't build recipes around them:\n${staplesList}`
+      : "";
+
     const userPrompt = `Suggest 4 recipes that use these ingredients expiring soon. Prioritise the items expiring earliest. Recipes should feel approachable, not fancy.
 
-Ingredients:
-${itemList}
+Ingredients expiring soon:
+${itemList}${staplesBlock}
 
 For each recipe, pick ONE emoji that visually matches the specific dish. Examples: pasta dishes → 🍝, stir-fry → 🥘, soup → 🍲, salad → 🥗, omelette/eggs → 🍳, sandwich → 🥪, taco → 🌮, burger → 🍔, pizza → 🍕, curry → 🍛, sushi → 🍣, ramen/noodles → 🍜, rice bowl → 🍚, roast meat → 🍗, fish → 🐟, smoothie → 🥤, pancakes → 🥞, baked goods → 🥐, dessert → 🍰. NEVER use the generic plate emoji 🍽️ — always pick something that represents the actual dish.`;
 
