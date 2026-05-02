@@ -14,6 +14,25 @@ export const CATEGORIES = [
 
 export const LOCATIONS = ["fridge", "freezer", "cupboard"] as const;
 
+export function locationEmoji(location: string) {
+  switch (location.toLowerCase()) {
+    case "fridge":
+      return "❄️";
+    case "freezer":
+      return "🧊";
+    case "cupboard":
+      return "🪵";
+    default:
+      return "📦";
+  }
+}
+
+export function locationLabel(location: string) {
+  const value = location.trim();
+  if (!value) return location;
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+}
+
 export function categoryEmoji(cat: string) {
   return CATEGORIES.find((c) => c.name.toLowerCase() === cat.toLowerCase())?.emoji ?? "📦";
 }
