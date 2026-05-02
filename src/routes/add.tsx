@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CATEGORIES, LOCATIONS, guessCategory } from "@/lib/food";
+import { CATEGORIES, LOCATIONS, guessCategory, locationEmoji, locationLabel } from "@/lib/food";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2, X, Check, Keyboard, Camera } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
@@ -44,6 +44,14 @@ function AddPage() {
     </>
   );
 }
+
+const expiryOverlayStyle = {
+  top: "31%",
+  width: "64%",
+  aspectRatio: "2.7 / 1",
+  boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)",
+  border: "3px solid oklch(var(--primary))",
+} satisfies React.CSSProperties;
 
 type Step = "barcode" | "expiry" | "details";
 
@@ -134,7 +142,7 @@ function SingleAdd() {
         <div className="space-y-2">
           <Label>Category</Label>
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue>{category ? `${CATEGORIES.find((c) => c.name === category)?.emoji ?? "📦"} ${category}` : undefined}</SelectValue></SelectTrigger>
             <SelectContent>
               {CATEGORIES.map((c) => (
                 <SelectItem key={c.name} value={c.name}>{c.emoji} {c.name}</SelectItem>
@@ -145,10 +153,10 @@ function SingleAdd() {
         <div className="space-y-2">
           <Label>Location</Label>
           <Select value={location} onValueChange={setLocation}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue>{location ? `${locationEmoji(location)} ${locationLabel(location)}` : undefined}</SelectValue></SelectTrigger>
             <SelectContent>
               {LOCATIONS.map((l) => (
-                <SelectItem key={l} value={l} className="capitalize">{l}</SelectItem>
+                <SelectItem key={l} value={l}>{locationEmoji(l)} {locationLabel(l)}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -436,8 +444,8 @@ function ExpiryCapture({ productName, onDate }: { productName: string; onDate: (
       const { data, error } = await supabase.functions.invoke("scan-expiry", { body: { imageBase64: b64 } });
       if (error) throw error;
       if (data?.date) {
-        setDate(data.date);
         toast.success(`Detected: ${data.date}`);
+        onDate(data.date);
       } else {
         toast.message("Couldn't read the date — pick it manually.");
         setManual(true);
@@ -477,13 +485,7 @@ function ExpiryCapture({ productName, onDate }: { productName: string; onDate: (
         <div className="pointer-events-none absolute inset-0">
           <div
             className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-xl"
-            style={{
-              top: "38%",
-              width: "70%",
-              aspectRatio: "3 / 1",
-              boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)",
-              border: "3px solid #2D9B6F",
-            }}
+            style={expiryOverlayStyle}
           />
         </div>
 
@@ -493,22 +495,7 @@ function ExpiryCapture({ productName, onDate }: { productName: string; onDate: (
           </p>
         </div>
 
-        {date && (
-          <div className="absolute inset-x-3 top-14 rounded-xl bg-card/95 p-3 text-sm">
-            <p className="text-muted-foreground text-xs">Detected</p>
-            <p className="font-serif text-lg">{date}</p>
-            <div className="mt-2 flex gap-2">
-              <Button size="sm" className="flex-1" onClick={() => onDate(date)}>
-                <Check className="mr-1 h-4 w-4" /> Looks right
-              </Button>
-              <Button size="sm" variant="secondary" onClick={() => setManual(true)}>
-                Edit
-              </Button>
-            </div>
-          </div>
-        )}
-
-        <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-3 p-4">
+        <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-3 px-4 pb-4 pt-20">
           <button
             onClick={capture}
             disabled={busy}
@@ -596,7 +583,7 @@ function BulkAdd() {
           </div>
           <div className="grid grid-cols-2 gap-2">
             <Select value={row.category} onValueChange={(v) => update(i, { category: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectTrigger><SelectValue>{row.category ? `${CATEGORIES.find((c) => c.name === row.category)?.emoji ?? "📦"} ${row.category}` : undefined}</SelectValue></SelectTrigger>
               <SelectContent>
                 {CATEGORIES.map((c) => (
                   <SelectItem key={c.name} value={c.name}>{c.emoji} {c.name}</SelectItem>
@@ -604,10 +591,10 @@ function BulkAdd() {
               </SelectContent>
             </Select>
             <Select value={row.location} onValueChange={(v) => update(i, { location: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectTrigger><SelectValue>{row.location ? `${locationEmoji(row.location)} ${locationLabel(row.location)}` : undefined}</SelectValue></SelectTrigger>
               <SelectContent>
                 {LOCATIONS.map((l) => (
-                  <SelectItem key={l} value={l} className="capitalize">{l}</SelectItem>
+              <SelectItem key={l} value={l}>{locationEmoji(l)} {locationLabel(l)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
