@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CATEGORIES, LOCATIONS, guessCategory, locationEmoji, locationLabel } from "@/lib/food";
+import { CATEGORIES, LOCATIONS, categoryEmoji, guessCategory, locationEmoji, locationLabel } from "@/lib/food";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2, X, Check, Keyboard, Camera } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
@@ -50,7 +50,7 @@ const expiryOverlayStyle = {
   width: "64%",
   aspectRatio: "2.7 / 1",
   boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)",
-  border: "3px solid oklch(var(--primary))",
+  border: "3px solid var(--primary)",
 } satisfies React.CSSProperties;
 
 type Step = "barcode" | "expiry" | "details";
@@ -142,7 +142,7 @@ function SingleAdd() {
         <div className="space-y-2">
           <Label>Category</Label>
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger><SelectValue>{category ? `${CATEGORIES.find((c) => c.name === category)?.emoji ?? "📦"} ${category}` : undefined}</SelectValue></SelectTrigger>
+            <SelectTrigger><SelectValue>{category ? `${categoryEmoji(category)} ${category}` : undefined}</SelectValue></SelectTrigger>
             <SelectContent>
               {CATEGORIES.map((c) => (
                 <SelectItem key={c.name} value={c.name}>{c.emoji} {c.name}</SelectItem>
@@ -300,7 +300,7 @@ function BarcodeScanner({
 
   return (
     <div className="space-y-3">
-      <div className="relative overflow-hidden rounded-2xl bg-black aspect-[3/4]">
+      <div className="relative overflow-hidden rounded-2xl bg-black aspect-square sm:aspect-[3/4]">
         <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" muted playsInline />
 
         {/* Dim overlay with cutout */}
@@ -583,7 +583,7 @@ function BulkAdd() {
           </div>
           <div className="grid grid-cols-2 gap-2">
             <Select value={row.category} onValueChange={(v) => update(i, { category: v })}>
-          <SelectTrigger><SelectValue>{row.category ? `${CATEGORIES.find((c) => c.name === row.category)?.emoji ?? "📦"} ${row.category}` : undefined}</SelectValue></SelectTrigger>
+          <SelectTrigger><SelectValue>{row.category ? `${categoryEmoji(row.category)} ${row.category}` : undefined}</SelectValue></SelectTrigger>
               <SelectContent>
                 {CATEGORIES.map((c) => (
                   <SelectItem key={c.name} value={c.name}>{c.emoji} {c.name}</SelectItem>
