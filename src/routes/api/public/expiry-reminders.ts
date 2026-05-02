@@ -131,6 +131,7 @@ export const Route = createFileRoute('/api/public/expiry-reminders')({
             .select('id,user_id,name,expiry_date')
             .eq('user_id', user.id)
             .eq('status', 'active')
+            .eq('is_pantry_staple', false)
             .in('expiry_date', [day3, day1])
 
           if (itemsErr) {
