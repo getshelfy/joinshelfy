@@ -133,8 +133,10 @@ export type Database = {
           brand: string | null
           category: string
           created_at: string
-          expiry_date: string
+          expiry_date: string | null
           id: string
+          include_in_recipes: boolean
+          is_pantry_staple: boolean
           location: string
           name: string
           notes: string | null
@@ -147,8 +149,10 @@ export type Database = {
           brand?: string | null
           category?: string
           created_at?: string
-          expiry_date: string
+          expiry_date?: string | null
           id?: string
+          include_in_recipes?: boolean
+          is_pantry_staple?: boolean
           location?: string
           name: string
           notes?: string | null
@@ -161,8 +165,10 @@ export type Database = {
           brand?: string | null
           category?: string
           created_at?: string
-          expiry_date?: string
+          expiry_date?: string | null
           id?: string
+          include_in_recipes?: boolean
+          is_pantry_staple?: boolean
           location?: string
           name?: string
           notes?: string | null
