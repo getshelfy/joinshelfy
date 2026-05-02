@@ -119,6 +119,13 @@ Deno.serve(async (req) => {
       if (y < minYear || y > maxYear) {
         args.date = "";
       } else {
+        // If the AI returned a date that's already in the past (likely missing year on packaging,
+        // defaulted to current year), bump to next year — food expiries are always in the future.
+        const candidate = new Date(`${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}T00:00:00Z`);
+        const todayUtc = new Date(`${todayIso}T00:00:00Z`);
+        if (candidate.getTime() < todayUtc.getTime() && y + 1 <= maxYear) {
+          y = y + 1;
+        }
         args.date = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
       }
     }
