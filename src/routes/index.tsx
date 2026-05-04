@@ -2,11 +2,27 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Header } from "@/components/header";
-import { listActiveItems, listPantryStaples, sumUsedSince, updateItemStatus, type FoodRow } from "@/lib/db";
+import {
+  listActiveItems,
+  listPantryStaples,
+  sumUsedSince,
+  updateItemStatus,
+  markItemOpened,
+  type FoodRow,
+} from "@/lib/db";
 import { categoryEmoji, daysUntil, urgencyLabel, urgencyOf } from "@/lib/food";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Plus, Check, Trash2, Sprout } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Plus, Check, Trash2, Sprout, PackageOpen } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
