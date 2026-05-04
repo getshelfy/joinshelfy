@@ -23,6 +23,7 @@ export type FoodRow = {
   notes?: string | null;
   is_pantry_staple?: boolean;
   include_in_recipes?: boolean;
+  opened_at?: string | null;
   updated_at?: string;
 };
 
