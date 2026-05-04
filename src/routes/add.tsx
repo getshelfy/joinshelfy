@@ -80,11 +80,9 @@ function SingleAdd() {
     const staple = override?.isPantryStaple ?? isPantryStaple;
     const include = override?.includeInRecipes ?? includeInRecipes;
     if (!name) {
-      toast.error("Name is required");
       return;
     }
     if (!staple && !expiry) {
-      toast.error("Expiry date is required");
       return;
     }
     setSaving(true);
@@ -101,10 +99,8 @@ function SingleAdd() {
           include_in_recipes: include,
         },
       ]);
-      toast.success(staple ? "Added to Pantry Staples 🌿" : "Added to your pantry 🌿");
       navigate({ to: "/" });
     } catch (err: any) {
-      toast.error(err.message || "Failed to save");
     } finally {
       setSaving(false);
     }
@@ -364,7 +360,6 @@ function BarcodeScanner({
       await track.applyConstraints({ advanced: [{ torch: next } as any] });
       setTorchOn(next);
     } catch {
-      toast.error("Flashlight unavailable on this device");
       setTorchSupported(false);
     }
   }
@@ -425,10 +420,8 @@ function BarcodeScanner({
       setLooking(true);
       const product = await lookupBarcode(code);
       if (product && product.name) {
-        toast.success(`Found: ${product.name}`);
         onProduct(product);
       } else {
-        toast.message("Couldn't find that product. Add the name.");
         onSkipManual();
       }
     }
@@ -597,7 +590,6 @@ function BarcodeScanner({
                   const product = await lookupBarcode(v);
                   setLooking(false);
                   if (product?.name) return onProduct(product);
-                  toast.message("Not found — using as name.");
                   return onSkipManual(v);
                 }
                 onSkipManual(v);
@@ -673,11 +665,9 @@ function ExpiryCapture({ productName, onDate }: { productName: string; onDate: (
         toast.success(`Detected: ${data.date}`);
         onDate(data.date);
       } else {
-        toast.message("Couldn't read the date — pick it manually.");
         setManual(true);
       }
     } catch (e: any) {
-      toast.error(e?.message || "OCR failed");
       setManual(true);
     } finally {
       setBusy(false);
@@ -800,10 +790,8 @@ function BulkAdd() {
           include_in_recipes: r.include_in_recipes,
         })),
       );
-      toast.success(`Added ${valid.length} items`);
       navigate({ to: "/" });
     } catch (err: any) {
-      toast.error(err.message || "Failed to save");
     } finally {
       setSaving(false);
     }

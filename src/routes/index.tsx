@@ -56,7 +56,6 @@ function Pantry() {
       setItems(data);
       setStaples(st);
     } catch (err: any) {
-      toast.error(err.message || "Failed to load");
     } finally {
       setLoading(false);
     }
@@ -75,9 +74,7 @@ function Pantry() {
       await updateItemStatus(id, status);
       setItems((prev) => prev.filter((i) => i.id !== id));
       setStaples((prev) => prev.filter((i) => i.id !== id));
-      toast.success(status === "used" ? "Nice — used it up! 🌱" : "Logged as wasted");
     } catch (err: any) {
-      toast.error(err.message || "Failed");
     }
   };
 
@@ -91,11 +88,9 @@ function Pantry() {
         i.id === openTarget.id ? { ...i, expiry_date: newExpiry, opened_at: openedAt } : i;
       setItems((prev) => prev.map(update));
       setStaples((prev) => prev.map(update));
-      toast.success(`Opened — use within ${days} day${days === 1 ? "" : "s"}`);
       setOpenTarget(null);
       setCustomDays("");
     } catch (err: any) {
-      toast.error(err.message || "Failed to mark opened");
     } finally {
       setOpening(false);
     }

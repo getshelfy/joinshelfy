@@ -58,7 +58,6 @@ function RecipesPage() {
       if (data?.error) throw new Error(data.error);
       setRecipes(data?.recipes || []);
     } catch (e: any) {
-      toast.error(e.message || "Recipe generation failed");
     } finally {
       setLoading(false);
     }
