@@ -99,6 +99,7 @@ function SingleAdd() {
           include_in_recipes: include,
         },
       ]);
+      try { localStorage.setItem("shelfy:first-item-added", Date.now().toString()); } catch {}
       navigate({ to: "/" });
     } catch (err: any) {
     } finally {
@@ -790,6 +791,7 @@ function BulkAdd() {
           include_in_recipes: r.include_in_recipes,
         })),
       );
+      try { localStorage.setItem("shelfy:first-item-added", Date.now().toString()); } catch {}
       navigate({ to: "/" });
     } catch (err: any) {
     } finally {
