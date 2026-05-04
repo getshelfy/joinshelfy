@@ -140,6 +140,31 @@ export async function updateItemStatus(id: string, status: "used" | "wasted" | "
   if (error) throw error;
 }
 
+export async function markItemOpened(id: string, useWithinDays: number): Promise<string> {
+  // Sets opened_at to now, expiry_date to today + N days. Returns the new ISO date.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  today.setDate(today.getDate() + useWithinDays);
+  const newExpiry = today.toISOString().slice(0, 10);
+  const openedAt = new Date().toISOString();
+  if (isGuest()) {
+    const items = readGuestItems();
+    const t = nowIso();
+    writeGuestItems(
+      items.map((i) =>
+        i.id === id ? { ...i, expiry_date: newExpiry, opened_at: openedAt, updated_at: t } : i,
+      ),
+    );
+    return newExpiry;
+  }
+  const { error } = await supabase
+    .from("food_items")
+    .update({ expiry_date: newExpiry, opened_at: openedAt })
+    .eq("id", id);
+  if (error) throw error;
+  return newExpiry;
+}
+
 export async function updateItemRecipeFlag(id: string, include: boolean): Promise<void> {
   if (isGuest()) {
     const items = readGuestItems();
