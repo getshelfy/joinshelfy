@@ -66,6 +66,10 @@ function Pantry() {
     load();
   }, []);
 
+  const [openTarget, setOpenTarget] = useState<Item | null>(null);
+  const [customDays, setCustomDays] = useState("");
+  const [opening, setOpening] = useState(false);
+
   const markStatus = async (id: string, status: "used" | "wasted") => {
     try {
       await updateItemStatus(id, status);
@@ -74,6 +78,26 @@ function Pantry() {
       toast.success(status === "used" ? "Nice — used it up! 🌱" : "Logged as wasted");
     } catch (err: any) {
       toast.error(err.message || "Failed");
+    }
+  };
+
+  const confirmOpened = async (days: number) => {
+    if (!openTarget || !Number.isFinite(days) || days < 1) return;
+    setOpening(true);
+    try {
+      const newExpiry = await markItemOpened(openTarget.id, Math.round(days));
+      const openedAt = new Date().toISOString();
+      const update = (i: Item) =>
+        i.id === openTarget.id ? { ...i, expiry_date: newExpiry, opened_at: openedAt } : i;
+      setItems((prev) => prev.map(update));
+      setStaples((prev) => prev.map(update));
+      toast.success(`Opened — use within ${days} day${days === 1 ? "" : "s"}`);
+      setOpenTarget(null);
+      setCustomDays("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to mark opened");
+    } finally {
+      setOpening(false);
     }
   };
 
