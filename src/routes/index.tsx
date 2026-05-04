@@ -105,7 +105,7 @@ function Pantry() {
 
   return (
     <>
-      <Header title="Your pantry" subtitle="Use it up, avoid waste, save the planet." />
+      <Header title="Your pantry" subtitle="Use it up to avoid waste" />
 
       <section className="grid grid-cols-3 gap-2 px-5">
         <Stat value={expiringSoon} label="Expiring soon" tone="urgent" />
