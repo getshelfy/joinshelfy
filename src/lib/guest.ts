@@ -34,6 +34,7 @@ export type GuestItem = {
   notes?: string | null;
   is_pantry_staple?: boolean;
   include_in_recipes?: boolean;
+  opened_at?: string | null;
   created_at: string;
   updated_at: string;
 };
