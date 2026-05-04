@@ -346,9 +346,99 @@ function BarcodeScanner({
       BarcodeFormat.CODE_39,
     ]);
     hints.set(DecodeHintType.TRY_HARDER, true);
-    const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 80, delayBetweenScanSuccess: 80 });
-    let controls: { stop: () => void } | null = null;
+    const reader = new MultiFormatReader();
+    reader.setHints(hints);
+
     let activeStream: MediaStream | null = null;
+    let rafId = 0;
+    let cancelled = false;
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const rotCanvas = document.createElement("canvas");
+    const rotCtx = rotCanvas.getContext("2d");
+
+    function imageDataToBitmap(data: ImageData): BinaryBitmap {
+      const { width, height, data: px } = data;
+      const luminances = new Uint8ClampedArray(width * height);
+      for (let i = 0, j = 0; i < px.length; i += 4, j++) {
+        // Standard luma
+        luminances[j] = (px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114 + 500) / 1000;
+      }
+      const source = new RGBLuminanceSource(luminances as unknown as Uint8ClampedArray, width, height);
+      return new BinaryBitmap(new HybridBinarizer(source as any));
+    }
+
+    function tryDecode(bitmap: BinaryBitmap): string | null {
+      try {
+        const r = reader.decode(bitmap);
+        return r.getText();
+      } catch (e) {
+        if (!(e instanceof NotFoundException)) {
+          // ignore
+        }
+        return null;
+      } finally {
+        reader.reset();
+      }
+    }
+
+    async function handleFound(code: string) {
+      if (detectedRef.current) return;
+      detectedRef.current = true;
+      vibrate();
+      beep();
+      setLooking(true);
+      const product = await lookupBarcode(code);
+      if (product && product.name) {
+        toast.success(`Found: ${product.name}`);
+        onProduct(product);
+      } else {
+        toast.message("Couldn't find that product. Add the name.");
+        onSkipManual();
+      }
+    }
+
+    function scanLoop() {
+      if (cancelled || detectedRef.current) return;
+      const video = videoRef.current;
+      if (video && video.readyState >= 2 && ctx && rotCtx) {
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
+        if (vw && vh) {
+          // Downscale a bit for perf
+          const maxDim = 720;
+          const scale = Math.min(1, maxDim / Math.max(vw, vh));
+          const w = Math.round(vw * scale);
+          const h = Math.round(vh * scale);
+          canvas.width = w;
+          canvas.height = h;
+          ctx.drawImage(video, 0, 0, w, h);
+          const data = ctx.getImageData(0, 0, w, h);
+
+          let code = tryDecode(imageDataToBitmap(data));
+
+          if (!code) {
+            // Rotate 90° to support vertical barcodes
+            rotCanvas.width = h;
+            rotCanvas.height = w;
+            rotCtx.save();
+            rotCtx.translate(h / 2, w / 2);
+            rotCtx.rotate(Math.PI / 2);
+            rotCtx.drawImage(canvas, -w / 2, -h / 2);
+            rotCtx.restore();
+            const rotData = rotCtx.getImageData(0, 0, h, w);
+            code = tryDecode(imageDataToBitmap(rotData));
+          }
+
+          if (code) {
+            handleFound(code);
+            return;
+          }
+        }
+      }
+      rafId = window.setTimeout(scanLoop, 120) as unknown as number;
+    }
 
     (async () => {
       try {
@@ -374,35 +464,15 @@ function BarcodeScanner({
         if (!videoRef.current) return;
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
-
-        controls = await reader.decodeFromStream(
-          stream,
-          videoRef.current,
-          async (result) => {
-            if (!result || detectedRef.current) return;
-            detectedRef.current = true;
-            const code = result.getText();
-            vibrate();
-            beep();
-            setLooking(true);
-            const product = await lookupBarcode(code);
-            controls?.stop();
-            if (product && product.name) {
-              toast.success(`Found: ${product.name}`);
-              onProduct(product);
-            } else {
-              toast.message("Couldn't find that product. Add the name.");
-              onSkipManual();
-            }
-          },
-        );
+        scanLoop();
       } catch (e: any) {
         setError(e?.message || "Camera unavailable");
       }
     })();
 
     return () => {
-      controls?.stop();
+      cancelled = true;
+      clearTimeout(rafId);
       activeStream?.getTracks().forEach((t) => t.stop());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
