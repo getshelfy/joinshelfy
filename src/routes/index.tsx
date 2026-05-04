@@ -227,6 +227,57 @@ function Pantry() {
           </ul>
         </section>
       )}
+
+      <Dialog
+        open={!!openTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setOpenTarget(null);
+            setCustomDays("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Mark as opened</DialogTitle>
+            <DialogDescription>
+              {openTarget?.name ? `Use ${openTarget.name} within how many days?` : "Use within how many days?"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-5 gap-2">
+            {[1, 2, 3, 5, 7].map((d) => (
+              <Button
+                key={d}
+                variant="outline"
+                disabled={opening}
+                onClick={() => confirmOpened(d)}
+                className="h-12 flex-col"
+              >
+                <span className="text-base font-semibold leading-none">{d}</span>
+                <span className="text-[10px] opacity-70">day{d === 1 ? "" : "s"}</span>
+              </Button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 pt-1">
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={365}
+              placeholder="Custom days"
+              value={customDays}
+              onChange={(e) => setCustomDays(e.target.value)}
+            />
+            <Button
+              disabled={opening || !customDays || Number(customDays) < 1}
+              onClick={() => confirmOpened(Number(customDays))}
+            >
+              Set
+            </Button>
+          </div>
+          <DialogFooter />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
