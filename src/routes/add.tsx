@@ -836,10 +836,10 @@ function BulkAdd() {
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="flex flex-col gap-2 sm:grid sm:grid-cols-5">
             <Input
               type="date"
-              className="col-span-3 w-full min-w-0"
+              className="w-full min-w-0 sm:col-span-3"
               value={row.expiry_date}
               disabled={row.is_pantry_staple}
               onChange={(e) => update(i, { expiry_date: e.target.value })}
@@ -848,7 +848,7 @@ function BulkAdd() {
               type="number"
               step="0.01"
               placeholder="Price"
-              className="col-span-2 w-full min-w-0"
+              className="w-full min-w-0 sm:col-span-2"
               value={row.price}
               onChange={(e) => update(i, { price: e.target.value })}
             />
