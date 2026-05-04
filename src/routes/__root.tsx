@@ -2,6 +2,7 @@ import { Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-r
 import { Toaster } from "@/components/ui/sonner";
 import { InstallPrompt } from "@/components/install-prompt";
 import { OfflineBanner } from "@/components/offline-banner";
+import { getAppIconLinks } from "@/components/app-icon-links";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -28,12 +29,7 @@ export const Route = createRootRoute({
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
-      { rel: "apple-touch-icon", sizes: "167x167", href: "/apple-touch-icon-167.png" },
-      { rel: "apple-touch-icon", sizes: "152x152", href: "/apple-touch-icon-152.png" },
-      { rel: "apple-touch-icon", sizes: "120x120", href: "/apple-touch-icon-120.png" },
-      { rel: "icon", type: "image/png", sizes: "192x192", href: "/icon-192.png" },
-      { rel: "icon", type: "image/png", sizes: "512x512", href: "/icon-512.png" },
+      ...getAppIconLinks(),
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       {
