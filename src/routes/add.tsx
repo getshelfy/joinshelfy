@@ -724,11 +724,19 @@ function BulkAdd() {
           <div className="grid grid-cols-2 gap-2">
             <Input
               type="date"
+              className="w-full min-w-0"
               value={row.expiry_date}
               disabled={row.is_pantry_staple}
               onChange={(e) => update(i, { expiry_date: e.target.value })}
             />
-            <Input type="number" step="0.01" placeholder="Price" value={row.price} onChange={(e) => update(i, { price: e.target.value })} />
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="Price"
+              className="w-full min-w-0"
+              value={row.price}
+              onChange={(e) => update(i, { price: e.target.value })}
+            />
           </div>
           <div className="flex items-center justify-between rounded-lg bg-card-soft px-2.5 py-1.5 text-xs">
             <label className="flex items-center gap-2">
