@@ -13,8 +13,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CATEGORIES, LOCATIONS, categoryEmoji, defaultIncludeInRecipes, guessCategory, locationEmoji, locationLabel } from "@/lib/food";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2, X, Check, Keyboard, Camera, CalendarOff, CalendarCheck } from "lucide-react";
-import { BrowserMultiFormatReader } from "@zxing/browser";
-import { DecodeHintType, BarcodeFormat } from "@zxing/library";
+import {
+  DecodeHintType,
+  BarcodeFormat,
+  MultiFormatReader,
+  RGBLuminanceSource,
+  HybridBinarizer,
+  BinaryBitmap,
+  NotFoundException,
+} from "@zxing/library";
 
 export const Route = createFileRoute("/add")({
   component: () => (
