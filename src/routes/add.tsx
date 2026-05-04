@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CATEGORIES, LOCATIONS, categoryEmoji, defaultIncludeInRecipes, guessCategory, locationEmoji, locationLabel } from "@/lib/food";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, X, Check, Keyboard, Camera, CalendarOff, CalendarCheck } from "lucide-react";
+import { Loader2, Plus, Trash2, X, Check, Keyboard, Camera, CalendarOff, CalendarCheck, Flashlight, FlashlightOff } from "lucide-react";
 import {
   DecodeHintType,
   BarcodeFormat,
