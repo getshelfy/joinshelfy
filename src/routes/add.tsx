@@ -252,14 +252,32 @@ function vibrate() {
 }
 function beep() {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.connect(g); g.connect(ctx.destination);
-    o.frequency.value = 880;
-    g.gain.value = 0.05;
-    o.start();
-    setTimeout(() => { o.stop(); ctx.close(); }, 120);
+    const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+    const ctx = new Ctx();
+    const now = ctx.currentTime;
+    // Two-note ascending chime: E6 -> A6
+    const notes = [
+      { freq: 1318.5, start: 0, dur: 0.12 },
+      { freq: 1760.0, start: 0.09, dur: 0.18 },
+    ];
+    const master = ctx.createGain();
+    master.gain.value = 0.12;
+    master.connect(ctx.destination);
+    notes.forEach(({ freq, start, dur }) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = "sine";
+      o.frequency.value = freq;
+      const t0 = now + start;
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(1, t0 + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g);
+      g.connect(master);
+      o.start(t0);
+      o.stop(t0 + dur + 0.02);
+    });
+    setTimeout(() => { ctx.close(); }, 500);
   } catch {}
 }
 
