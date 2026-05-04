@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Download, Share, X } from "lucide-react";
+import { Download, Share, X, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const DISMISS_KEY = "shelfy:install-prompt-dismissed-at";
