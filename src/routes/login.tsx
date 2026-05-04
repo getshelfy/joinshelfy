@@ -5,7 +5,6 @@ import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
 import { startGuest, isGuest } from "@/lib/guest";
 import { Sprout } from "lucide-react";
 
@@ -39,7 +38,6 @@ function LoginPage() {
         });
         if (error) throw error;
         if (data.user) {
-          toast.success("Welcome to Shelfy!");
           navigate({ to: "/" });
         }
       } else {
@@ -48,7 +46,6 @@ function LoginPage() {
         navigate({ to: "/" });
       }
     } catch (err: any) {
-      toast.error(err.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -61,21 +58,18 @@ function LoginPage() {
         redirect_uri: window.location.origin,
       });
       if (result.error) {
-        toast.error(result.error.message || "Google sign-in failed");
         setOauthLoading(false);
         return;
       }
       if (result.redirected) return;
       navigate({ to: "/" });
     } catch (err: any) {
-      toast.error(err.message || "Google sign-in failed");
       setOauthLoading(false);
     }
   };
 
   const handleGuest = async () => {
     startGuest();
-    toast.success("You're in as a guest. Data stays on this device.");
     navigate({ to: "/" });
   };
 

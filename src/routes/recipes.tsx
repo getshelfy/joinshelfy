@@ -7,7 +7,6 @@ import { listItemsForRecipes, type RecipeIngredient } from "@/lib/db";
 import { daysUntil } from "@/lib/food";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Clock, ChefHat, Loader2 } from "lucide-react";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/recipes")({
   component: () => (
@@ -58,7 +57,6 @@ function RecipesPage() {
       if (data?.error) throw new Error(data.error);
       setRecipes(data?.recipes || []);
     } catch (e: any) {
-      toast.error(e.message || "Recipe generation failed");
     } finally {
       setLoading(false);
     }
