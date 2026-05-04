@@ -23,6 +23,7 @@ export type FoodRow = {
   notes?: string | null;
   is_pantry_staple?: boolean;
   include_in_recipes?: boolean;
+  opened_at?: string | null;
   updated_at?: string;
 };
 
@@ -47,7 +48,7 @@ function uuid() {
   return "g-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-const SELECT_COLS = "id,name,category,location,expiry_date,price,status,is_pantry_staple,include_in_recipes";
+const SELECT_COLS = "id,name,category,location,expiry_date,price,status,is_pantry_staple,include_in_recipes,opened_at";
 
 export async function listActiveItems(): Promise<FoodRow[]> {
   // Returns only items being tracked for expiry — pantry staples excluded.
@@ -137,6 +138,31 @@ export async function updateItemStatus(id: string, status: "used" | "wasted" | "
   }
   const { error } = await supabase.from("food_items").update({ status }).eq("id", id);
   if (error) throw error;
+}
+
+export async function markItemOpened(id: string, useWithinDays: number): Promise<string> {
+  // Sets opened_at to now, expiry_date to today + N days. Returns the new ISO date.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  today.setDate(today.getDate() + useWithinDays);
+  const newExpiry = today.toISOString().slice(0, 10);
+  const openedAt = new Date().toISOString();
+  if (isGuest()) {
+    const items = readGuestItems();
+    const t = nowIso();
+    writeGuestItems(
+      items.map((i) =>
+        i.id === id ? { ...i, expiry_date: newExpiry, opened_at: openedAt, updated_at: t } : i,
+      ),
+    );
+    return newExpiry;
+  }
+  const { error } = await supabase
+    .from("food_items")
+    .update({ expiry_date: newExpiry, opened_at: openedAt })
+    .eq("id", id);
+  if (error) throw error;
+  return newExpiry;
 }
 
 export async function updateItemRecipeFlag(id: string, include: boolean): Promise<void> {

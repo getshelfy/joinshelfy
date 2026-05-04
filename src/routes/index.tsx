@@ -2,11 +2,27 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Header } from "@/components/header";
-import { listActiveItems, listPantryStaples, sumUsedSince, updateItemStatus, type FoodRow } from "@/lib/db";
+import {
+  listActiveItems,
+  listPantryStaples,
+  sumUsedSince,
+  updateItemStatus,
+  markItemOpened,
+  type FoodRow,
+} from "@/lib/db";
 import { categoryEmoji, daysUntil, urgencyLabel, urgencyOf } from "@/lib/food";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Plus, Check, Trash2, Sprout } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Plus, Check, Trash2, Sprout, PackageOpen } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
@@ -50,6 +66,10 @@ function Pantry() {
     load();
   }, []);
 
+  const [openTarget, setOpenTarget] = useState<Item | null>(null);
+  const [customDays, setCustomDays] = useState("");
+  const [opening, setOpening] = useState(false);
+
   const markStatus = async (id: string, status: "used" | "wasted") => {
     try {
       await updateItemStatus(id, status);
@@ -58,6 +78,26 @@ function Pantry() {
       toast.success(status === "used" ? "Nice — used it up! 🌱" : "Logged as wasted");
     } catch (err: any) {
       toast.error(err.message || "Failed");
+    }
+  };
+
+  const confirmOpened = async (days: number) => {
+    if (!openTarget || !Number.isFinite(days) || days < 1) return;
+    setOpening(true);
+    try {
+      const newExpiry = await markItemOpened(openTarget.id, Math.round(days));
+      const openedAt = new Date().toISOString();
+      const update = (i: Item) =>
+        i.id === openTarget.id ? { ...i, expiry_date: newExpiry, opened_at: openedAt } : i;
+      setItems((prev) => prev.map(update));
+      setStaples((prev) => prev.map(update));
+      toast.success(`Opened — use within ${days} day${days === 1 ? "" : "s"}`);
+      setOpenTarget(null);
+      setCustomDays("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to mark opened");
+    } finally {
+      setOpening(false);
     }
   };
 
@@ -112,7 +152,7 @@ function Pantry() {
                     <div className="flex items-baseline justify-between gap-2">
                       <h3 className="truncate font-medium">{item.name}</h3>
                     </div>
-                    <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                       <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium", tone)}>
                         {urgencyLabel(days)}
                       </span>
@@ -120,9 +160,23 @@ function Pantry() {
                         <span aria-hidden>{locationEmoji(item.location)}</span>
                         {item.location}
                       </span>
+                      {item.opened_at && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 font-medium text-accent-foreground">
+                          <PackageOpen className="h-3 w-3" /> Opened
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
+                    {!item.opened_at && (
+                      <button
+                        onClick={() => setOpenTarget(item)}
+                        aria-label="Mark opened"
+                        className="flex h-9 w-9 items-center justify-center rounded-full bg-card-soft text-foreground hover:bg-muted"
+                      >
+                        <PackageOpen className="h-4 w-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => markStatus(item.id, "used")}
                       aria-label="Mark used"
@@ -173,6 +227,57 @@ function Pantry() {
           </ul>
         </section>
       )}
+
+      <Dialog
+        open={!!openTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setOpenTarget(null);
+            setCustomDays("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Mark as opened</DialogTitle>
+            <DialogDescription>
+              {openTarget?.name ? `Use ${openTarget.name} within how many days?` : "Use within how many days?"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-5 gap-2">
+            {[1, 2, 3, 5, 7].map((d) => (
+              <Button
+                key={d}
+                variant="outline"
+                disabled={opening}
+                onClick={() => confirmOpened(d)}
+                className="h-12 flex-col"
+              >
+                <span className="text-base font-semibold leading-none">{d}</span>
+                <span className="text-[10px] opacity-70">day{d === 1 ? "" : "s"}</span>
+              </Button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 pt-1">
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={365}
+              placeholder="Custom days"
+              value={customDays}
+              onChange={(e) => setCustomDays(e.target.value)}
+            />
+            <Button
+              disabled={opening || !customDays || Number(customDays) < 1}
+              onClick={() => confirmOpened(Number(customDays))}
+            >
+              Set
+            </Button>
+          </div>
+          <DialogFooter />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

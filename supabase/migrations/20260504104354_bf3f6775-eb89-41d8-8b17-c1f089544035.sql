@@ -1,0 +1,1 @@
+ALTER TABLE public.food_items ADD COLUMN IF NOT EXISTS opened_at timestamp with time zone;

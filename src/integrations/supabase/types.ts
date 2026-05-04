@@ -140,6 +140,7 @@ export type Database = {
           location: string
           name: string
           notes: string | null
+          opened_at: string | null
           price: number | null
           status: string
           updated_at: string
@@ -156,6 +157,7 @@ export type Database = {
           location?: string
           name: string
           notes?: string | null
+          opened_at?: string | null
           price?: number | null
           status?: string
           updated_at?: string
@@ -172,6 +174,7 @@ export type Database = {
           location?: string
           name?: string
           notes?: string | null
+          opened_at?: string | null
           price?: number | null
           status?: string
           updated_at?: string
