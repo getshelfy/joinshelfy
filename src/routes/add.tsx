@@ -471,7 +471,9 @@ function BarcodeScanner({
 
         try {
           const track = stream.getVideoTracks()[0];
+          trackRef.current = track;
           const caps: any = track.getCapabilities?.() ?? {};
+          if (caps.torch) setTorchSupported(true);
           const advanced: any[] = [];
           if (caps.focusMode?.includes?.("continuous")) advanced.push({ focusMode: "continuous" });
           if (advanced.length) await track.applyConstraints({ advanced });
