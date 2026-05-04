@@ -81,7 +81,8 @@ export function InstallPrompt() {
         setShow(false);
         if (outcome === "dismissed") dismiss();
       }
-    } else if (ios) {
+    } else {
+      // No native prompt available (iOS, or Android browsers that don't fire it)
       setShowIosHelp(true);
     }
   };
