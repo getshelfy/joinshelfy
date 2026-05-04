@@ -4,6 +4,15 @@ import { Button } from "@/components/ui/button";
 
 const DISMISS_KEY = "shelfy:install-prompt-dismissed-at";
 const DISMISS_DAYS = 3;
+const FIRST_ITEM_KEY = "shelfy:first-item-added";
+
+function hasAddedFirstItem() {
+  try {
+    return !!localStorage.getItem(FIRST_ITEM_KEY);
+  } catch {
+    return false;
+  }
+}
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -45,23 +54,51 @@ export function InstallPrompt() {
   useEffect(() => {
     if (isStandalone() || recentlyDismissed()) return;
 
+    let iosTimer: ReturnType<typeof setTimeout> | null = null;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+
     const onBip = (e: Event) => {
       e.preventDefault();
       setDeferred(e as BeforeInstallPromptEvent);
-      setShow(true);
+      if (hasAddedFirstItem()) setShow(true);
     };
     window.addEventListener("beforeinstallprompt", onBip);
 
-    // iOS doesn't fire beforeinstallprompt — show after short delay
+    // Poll for the first-item flag so the prompt appears right after the user adds their first item.
+    pollTimer = setInterval(() => {
+      if (hasAddedFirstItem()) {
+        setShow(true);
+        if (pollTimer) clearInterval(pollTimer);
+      }
+    }, 1000);
+
+    // iOS doesn't fire beforeinstallprompt — show shortly after the first item is added
     if (ios) {
-      const t = setTimeout(() => setShow(true), 4000);
-      return () => {
-        clearTimeout(t);
-        window.removeEventListener("beforeinstallprompt", onBip);
+      const tryShow = () => {
+        if (hasAddedFirstItem()) {
+          iosTimer = setTimeout(() => setShow(true), 1500);
+          return true;
+        }
+        return false;
       };
+      if (!tryShow()) {
+        const iosPoll = setInterval(() => {
+          if (tryShow()) clearInterval(iosPoll);
+        }, 1000);
+        return () => {
+          clearInterval(iosPoll);
+          if (iosTimer) clearTimeout(iosTimer);
+          if (pollTimer) clearInterval(pollTimer);
+          window.removeEventListener("beforeinstallprompt", onBip);
+        };
+      }
     }
 
-    return () => window.removeEventListener("beforeinstallprompt", onBip);
+    return () => {
+      if (iosTimer) clearTimeout(iosTimer);
+      if (pollTimer) clearInterval(pollTimer);
+      window.removeEventListener("beforeinstallprompt", onBip);
+    };
   }, [ios]);
 
   const dismiss = () => {
