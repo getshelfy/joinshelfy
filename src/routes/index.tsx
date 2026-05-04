@@ -152,7 +152,7 @@ function Pantry() {
                     <div className="flex items-baseline justify-between gap-2">
                       <h3 className="truncate font-medium">{item.name}</h3>
                     </div>
-                    <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                       <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium", tone)}>
                         {urgencyLabel(days)}
                       </span>
@@ -160,9 +160,23 @@ function Pantry() {
                         <span aria-hidden>{locationEmoji(item.location)}</span>
                         {item.location}
                       </span>
+                      {item.opened_at && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 font-medium text-accent-foreground">
+                          <PackageOpen className="h-3 w-3" /> Opened
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
+                    {!item.opened_at && (
+                      <button
+                        onClick={() => setOpenTarget(item)}
+                        aria-label="Mark opened"
+                        className="flex h-9 w-9 items-center justify-center rounded-full bg-card-soft text-foreground hover:bg-muted"
+                      >
+                        <PackageOpen className="h-4 w-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => markStatus(item.id, "used")}
                       aria-label="Mark used"
