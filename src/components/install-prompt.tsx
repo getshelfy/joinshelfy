@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Download, Share, X } from "lucide-react";
+import { Download, Share, X, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const DISMISS_KEY = "shelfy:install-prompt-dismissed-at";
@@ -81,7 +81,8 @@ export function InstallPrompt() {
         setShow(false);
         if (outcome === "dismissed") dismiss();
       }
-    } else if (ios) {
+    } else {
+      // No native prompt available (iOS, or Android browsers that don't fire it)
       setShowIosHelp(true);
     }
   };
@@ -98,10 +99,23 @@ export function InstallPrompt() {
           {showIosHelp ? (
             <>
               <h3 className="font-medium">Add Shelfy to your Home Screen</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Tap the <Share className="inline h-3.5 w-3.5 align-text-bottom" /> Share button, then choose
-                <span className="font-medium"> "Add to Home Screen"</span>.
-              </p>
+              {ios ? (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Tap the <Share className="inline h-3.5 w-3.5 align-text-bottom" /> Share button, then choose
+                  <span className="font-medium"> "Add to Home Screen"</span>.
+                </p>
+              ) : (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Tap the <MoreVertical className="inline h-3.5 w-3.5 align-text-bottom" /> More menu (3 dots) in your browser,
+                  then choose <span className="font-medium">"Add to Home Screen"</span> or
+                  <span className="font-medium"> "Install app"</span>.
+                </p>
+              )}
+              <div className="mt-3">
+                <Button size="sm" variant="ghost" onClick={dismiss} className="h-9">
+                  Got it
+                </Button>
+              </div>
             </>
           ) : (
             <>
@@ -109,17 +123,15 @@ export function InstallPrompt() {
               <p className="mt-1 text-sm text-muted-foreground">
                 Install Shelfy for the full app experience.
               </p>
+              <div className="mt-3 flex gap-2">
+                <Button size="sm" onClick={install} className="h-9">
+                  {deferred ? "Install" : "Show me how"}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={dismiss} className="h-9">
+                  Not now
+                </Button>
+              </div>
             </>
-          )}
-          {!showIosHelp && (
-            <div className="mt-3 flex gap-2">
-              <Button size="sm" onClick={install} className="h-9">
-                {ios ? "Show me how" : "Install"}
-              </Button>
-              <Button size="sm" variant="ghost" onClick={dismiss} className="h-9">
-                Not now
-              </Button>
-            </div>
           )}
         </div>
         <button
