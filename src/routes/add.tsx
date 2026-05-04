@@ -776,7 +776,7 @@ function BulkAdd() {
 
   const save = async () => {
     const valid = rows.filter((r) => r.name && (r.is_pantry_staple || r.expiry_date));
-    if (!valid.length) return toast.error("Add at least one row with a name and date (or mark it as a pantry staple)");
+    if (!valid.length) return;
     setSaving(true);
     try {
       await insertItems(
