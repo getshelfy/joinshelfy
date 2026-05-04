@@ -491,6 +491,7 @@ function BarcodeScanner({
     return () => {
       cancelled = true;
       clearTimeout(rafId);
+      trackRef.current = null;
       activeStream?.getTracks().forEach((t) => t.stop());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
