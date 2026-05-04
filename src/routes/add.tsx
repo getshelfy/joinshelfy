@@ -521,10 +521,22 @@ function BarcodeScanner({
           </div>
         </div>
 
-        <div className="absolute inset-x-0 top-0 p-4 text-center">
-          <p className="inline-block rounded-full bg-black/55 px-3 py-1.5 text-xs text-white">
+        <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-2 p-3">
+          <span className="rounded-full bg-black/55 px-3 py-1.5 text-xs text-white">
             Point at the barcode
-          </p>
+          </span>
+          {torchSupported && (
+            <button
+              type="button"
+              onClick={toggleTorch}
+              aria-label={torchOn ? "Turn flashlight off" : "Turn flashlight on"}
+              className={`flex h-10 w-10 items-center justify-center rounded-full text-white shadow-md transition ${
+                torchOn ? "bg-primary" : "bg-black/55 hover:bg-black/70"
+              }`}
+            >
+              {torchOn ? <Flashlight className="h-5 w-5" /> : <FlashlightOff className="h-5 w-5" />}
+            </button>
+          )}
         </div>
 
         {looking && (
