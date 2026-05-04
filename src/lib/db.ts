@@ -48,7 +48,7 @@ function uuid() {
   return "g-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-const SELECT_COLS = "id,name,category,location,expiry_date,price,status,is_pantry_staple,include_in_recipes";
+const SELECT_COLS = "id,name,category,location,expiry_date,price,status,is_pantry_staple,include_in_recipes,opened_at";
 
 export async function listActiveItems(): Promise<FoodRow[]> {
   // Returns only items being tracked for expiry — pantry staples excluded.
