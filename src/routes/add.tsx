@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CATEGORIES, LOCATIONS, categoryEmoji, defaultIncludeInRecipes, guessCategory, locationEmoji, locationLabel } from "@/lib/food";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, X, Check, Keyboard, Camera, CalendarOff, CalendarCheck } from "lucide-react";
+import { Loader2, Plus, Trash2, X, Check, Keyboard, Camera, CalendarOff, CalendarCheck, Flashlight, FlashlightOff } from "lucide-react";
 import {
   DecodeHintType,
   BarcodeFormat,
@@ -329,11 +329,27 @@ function BarcodeScanner({
   onSkipManual: (productName?: string) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const trackRef = useRef<MediaStreamTrack | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [looking, setLooking] = useState(false);
   const [showManual, setShowManual] = useState(false);
   const [manualValue, setManualValue] = useState("");
+  const [torchSupported, setTorchSupported] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
   const detectedRef = useRef(false);
+
+  async function toggleTorch() {
+    const track = trackRef.current;
+    if (!track) return;
+    const next = !torchOn;
+    try {
+      await track.applyConstraints({ advanced: [{ torch: next } as any] });
+      setTorchOn(next);
+    } catch {
+      toast.error("Flashlight unavailable on this device");
+      setTorchSupported(false);
+    }
+  }
 
   useEffect(() => {
     const hints = new Map();
@@ -455,7 +471,9 @@ function BarcodeScanner({
 
         try {
           const track = stream.getVideoTracks()[0];
+          trackRef.current = track;
           const caps: any = track.getCapabilities?.() ?? {};
+          if (caps.torch) setTorchSupported(true);
           const advanced: any[] = [];
           if (caps.focusMode?.includes?.("continuous")) advanced.push({ focusMode: "continuous" });
           if (advanced.length) await track.applyConstraints({ advanced });
@@ -473,6 +491,7 @@ function BarcodeScanner({
     return () => {
       cancelled = true;
       clearTimeout(rafId);
+      trackRef.current = null;
       activeStream?.getTracks().forEach((t) => t.stop());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -502,10 +521,22 @@ function BarcodeScanner({
           </div>
         </div>
 
-        <div className="absolute inset-x-0 top-0 p-4 text-center">
-          <p className="inline-block rounded-full bg-black/55 px-3 py-1.5 text-xs text-white">
+        <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-2 p-3">
+          <span className="rounded-full bg-black/55 px-3 py-1.5 text-xs text-white">
             Point at the barcode
-          </p>
+          </span>
+          {torchSupported && (
+            <button
+              type="button"
+              onClick={toggleTorch}
+              aria-label={torchOn ? "Turn flashlight off" : "Turn flashlight on"}
+              className={`flex h-10 w-10 items-center justify-center rounded-full text-white shadow-md transition ${
+                torchOn ? "bg-primary" : "bg-black/55 hover:bg-black/70"
+              }`}
+            >
+              {torchOn ? <Flashlight className="h-5 w-5" /> : <FlashlightOff className="h-5 w-5" />}
+            </button>
+          )}
         </div>
 
         {looking && (
