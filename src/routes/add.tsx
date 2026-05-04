@@ -651,6 +651,7 @@ function ExpiryCapture({ productName, onDate }: { productName: string; onDate: (
       const { data, error } = await supabase.functions.invoke("scan-expiry", { body: { imageBase64: b64 } });
       if (error) throw error;
       if (data?.date) {
+        vibrate();
         toast.success(`Detected: ${data.date}`);
         onDate(data.date);
       } else {
