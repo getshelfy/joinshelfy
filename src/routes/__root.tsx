@@ -1,5 +1,7 @@
 import { Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
+import { InstallPrompt } from "@/components/install-prompt";
+import { OfflineBanner } from "@/components/offline-banner";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -9,7 +11,11 @@ export const Route = createRootRoute({
       { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" },
       { title: "Shelfy — Don't foget what you already have." },
       { name: "description", content: "Shelfy is a friendly food expiry tracker that helps you save food and money." },
-      { name: "theme-color", content: "#FAF8F3" },
+      { name: "theme-color", content: "#2D9B6F" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: "Shelfy" },
       { property: "og:title", content: "Shelfy — Don't foget what you already have." },
       { name: "twitter:title", content: "Shelfy — Don't foget what you already have." },
       { property: "og:description", content: "Shelfy is a friendly food expiry tracker that helps you save food and money." },
@@ -21,6 +27,10 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+      { rel: "icon", type: "image/png", sizes: "192x192", href: "/icon-192.png" },
+      { rel: "icon", type: "image/png", sizes: "512x512", href: "/icon-512.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       {
@@ -48,7 +58,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
+        <OfflineBanner />
         {children}
+        <InstallPrompt />
         <Toaster position="top-center" />
         <Scripts />
       </body>
