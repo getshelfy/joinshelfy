@@ -5,7 +5,7 @@ import { Header } from "@/components/header";
 import { daysUntil } from "@/lib/food";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Plus, Sprout, ChevronDown, AlertCircle } from "lucide-react";
+import { Plus, Sprout, ChevronDown } from "lucide-react";
 import {
   ItemRow,
   Stat,
