@@ -1,9 +1,10 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Plus, ChefHat, BarChart3 } from "lucide-react";
+import { Home, Plus, ChefHat, BarChart3, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
-  { to: "/", label: "Pantry", icon: Home },
+  { to: "/", label: "Home", icon: Home },
+  { to: "/pantry", label: "Pantry", icon: ListChecks },
   { to: "/add", label: "Add", icon: Plus },
   { to: "/recipes", label: "Recipes", icon: ChefHat },
   { to: "/insights", label: "Insights", icon: BarChart3 },

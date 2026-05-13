@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RecipesRouteImport } from './routes/recipes'
+import { Route as PantryRouteImport } from './routes/pantry'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as AddRouteImport } from './routes/add'
@@ -36,6 +37,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const RecipesRoute = RecipesRouteImport.update({
   id: '/recipes',
   path: '/recipes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PantryRoute = PantryRouteImport.update({
+  id: '/pantry',
+  path: '/pantry',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -98,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/add': typeof AddRoute
   '/insights': typeof InsightsRoute
   '/login': typeof LoginRoute
+  '/pantry': typeof PantryRoute
   '/recipes': typeof RecipesRoute
   '/settings': typeof SettingsRoute
   '/unsubscribe': typeof UnsubscribeRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/add': typeof AddRoute
   '/insights': typeof InsightsRoute
   '/login': typeof LoginRoute
+  '/pantry': typeof PantryRoute
   '/recipes': typeof RecipesRoute
   '/settings': typeof SettingsRoute
   '/unsubscribe': typeof UnsubscribeRoute
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/add': typeof AddRoute
   '/insights': typeof InsightsRoute
   '/login': typeof LoginRoute
+  '/pantry': typeof PantryRoute
   '/recipes': typeof RecipesRoute
   '/settings': typeof SettingsRoute
   '/unsubscribe': typeof UnsubscribeRoute
@@ -146,6 +155,7 @@ export interface FileRouteTypes {
     | '/add'
     | '/insights'
     | '/login'
+    | '/pantry'
     | '/recipes'
     | '/settings'
     | '/unsubscribe'
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/add'
     | '/insights'
     | '/login'
+    | '/pantry'
     | '/recipes'
     | '/settings'
     | '/unsubscribe'
@@ -176,6 +187,7 @@ export interface FileRouteTypes {
     | '/add'
     | '/insights'
     | '/login'
+    | '/pantry'
     | '/recipes'
     | '/settings'
     | '/unsubscribe'
@@ -192,6 +204,7 @@ export interface RootRouteChildren {
   AddRoute: typeof AddRoute
   InsightsRoute: typeof InsightsRoute
   LoginRoute: typeof LoginRoute
+  PantryRoute: typeof PantryRoute
   RecipesRoute: typeof RecipesRoute
   SettingsRoute: typeof SettingsRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
@@ -224,6 +237,13 @@ declare module '@tanstack/react-router' {
       path: '/recipes'
       fullPath: '/recipes'
       preLoaderRoute: typeof RecipesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pantry': {
+      id: '/pantry'
+      path: '/pantry'
+      fullPath: '/pantry'
+      preLoaderRoute: typeof PantryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -304,6 +324,7 @@ const rootRouteChildren: RootRouteChildren = {
   AddRoute: AddRoute,
   InsightsRoute: InsightsRoute,
   LoginRoute: LoginRoute,
+  PantryRoute: PantryRoute,
   RecipesRoute: RecipesRoute,
   SettingsRoute: SettingsRoute,
   UnsubscribeRoute: UnsubscribeRoute,
