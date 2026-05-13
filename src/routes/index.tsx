@@ -5,7 +5,7 @@ import { Header } from "@/components/header";
 import { daysUntil } from "@/lib/food";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Plus, Sprout, ChevronDown, AlertCircle } from "lucide-react";
+import { Plus, Sprout, ChevronDown } from "lucide-react";
 import {
   ItemRow,
   Stat,
@@ -35,9 +35,6 @@ function Home() {
 
   const expiringSoon = items.filter((i) => i.expiry_date && daysUntil(i.expiry_date) <= 2).length;
   const total = items.length;
-  const useFirst = items
-    .filter((i) => i.expiry_date && daysUntil(i.expiry_date) <= 2)
-    .sort((a, b) => (daysUntil(a.expiry_date!) - daysUntil(b.expiry_date!)));
 
   return (
     <>
@@ -56,86 +53,29 @@ function Home() {
       ) : items.length === 0 ? (
         <EmptyState />
       ) : (
-        <>
-          {useFirst.length > 0 && (
-            <UseFirstBanner items={useFirst} onOpen={setOpenTarget} onStatus={markStatus} />
-          )}
-
-          <div className="mt-4 space-y-3 px-5">
-            {(["fridge", "freezer", "cupboard"] as const).map((loc) => {
-              const locItems = items
-                .filter((i) => i.location === loc)
-                .sort((a, b) => (a.expiry_date || "").localeCompare(b.expiry_date || ""));
-              if (!locItems.length) return null;
-              return (
-                <LocationCard
-                  key={loc}
-                  location={loc}
-                  items={locItems}
-                  onOpen={setOpenTarget}
-                  onStatus={markStatus}
-                />
-              );
-            })}
-          </div>
-        </>
+        <div className="mt-5 space-y-3 px-5">
+          {(["fridge", "freezer", "cupboard"] as const).map((loc) => {
+            const locItems = items
+              .filter((i) => i.location === loc)
+              .sort((a, b) => (a.expiry_date || "").localeCompare(b.expiry_date || ""));
+            if (!locItems.length) return null;
+            return (
+              <LocationCard
+                key={loc}
+                location={loc}
+                items={locItems}
+                onOpen={setOpenTarget}
+                onStatus={markStatus}
+              />
+            );
+          })}
+        </div>
       )}
 
       <StaplesList staples={staples} onMarkUsed={(id) => markStatus(id, "used")} />
 
       {dialog}
     </>
-  );
-}
-
-function UseFirstBanner({
-  items,
-  onOpen,
-  onStatus,
-}: {
-  items: Item[];
-  onOpen: (i: Item) => void;
-  onStatus: (id: string, status: "used" | "wasted") => void;
-}) {
-  const [open, setOpen] = useState(true);
-  return (
-    <section className="mt-5 px-5">
-      <div className="overflow-hidden rounded-2xl border border-urgent-foreground/30 bg-urgent/40">
-        <button
-          onClick={() => setOpen((o) => !o)}
-          className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-        >
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-urgent-foreground" />
-            <h2 className="font-serif text-lg text-urgent-foreground">
-              Use First <span aria-hidden>🔴</span>
-              <span className="ml-1 text-sm font-sans opacity-80">
-                · {items.length} {items.length === 1 ? "item" : "items"}
-              </span>
-            </h2>
-          </div>
-          <ChevronDown
-            className={cn(
-              "h-4 w-4 text-urgent-foreground transition-transform duration-200",
-              !open && "-rotate-90",
-            )}
-          />
-        </button>
-        {open && (
-          <ul className="space-y-2 px-3 pb-3">
-            {items.map((item) => (
-              <ItemRow
-                key={item.id}
-                item={item}
-                onOpen={onOpen}
-                onStatus={onStatus}
-                showLocation
-              />
-            ))}
-          </ul>
-        )}
-      </div>
-    </section>
   );
 }
 
