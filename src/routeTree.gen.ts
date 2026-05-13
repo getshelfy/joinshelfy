@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RecipesRouteImport } from './routes/recipes'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as InsightsRouteImport } from './routes/insights'
@@ -25,6 +26,11 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
   path: '/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RecipesRoute = RecipesRouteImport.update({
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/insights': typeof InsightsRoute
   '/login': typeof LoginRoute
   '/recipes': typeof RecipesRoute
+  '/settings': typeof SettingsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/api/public/expiry-reminders': typeof ApiPublicExpiryRemindersRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/insights': typeof InsightsRoute
   '/login': typeof LoginRoute
   '/recipes': typeof RecipesRoute
+  '/settings': typeof SettingsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/api/public/expiry-reminders': typeof ApiPublicExpiryRemindersRoute
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/insights': typeof InsightsRoute
   '/login': typeof LoginRoute
   '/recipes': typeof RecipesRoute
+  '/settings': typeof SettingsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/api/public/expiry-reminders': typeof ApiPublicExpiryRemindersRoute
@@ -138,6 +147,7 @@ export interface FileRouteTypes {
     | '/insights'
     | '/login'
     | '/recipes'
+    | '/settings'
     | '/unsubscribe'
     | '/email/unsubscribe'
     | '/api/public/expiry-reminders'
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/insights'
     | '/login'
     | '/recipes'
+    | '/settings'
     | '/unsubscribe'
     | '/email/unsubscribe'
     | '/api/public/expiry-reminders'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/insights'
     | '/login'
     | '/recipes'
+    | '/settings'
     | '/unsubscribe'
     | '/email/unsubscribe'
     | '/api/public/expiry-reminders'
@@ -181,6 +193,7 @@ export interface RootRouteChildren {
   InsightsRoute: typeof InsightsRoute
   LoginRoute: typeof LoginRoute
   RecipesRoute: typeof RecipesRoute
+  SettingsRoute: typeof SettingsRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   ApiPublicExpiryRemindersRoute: typeof ApiPublicExpiryRemindersRoute
@@ -197,6 +210,13 @@ declare module '@tanstack/react-router' {
       path: '/unsubscribe'
       fullPath: '/unsubscribe'
       preLoaderRoute: typeof UnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/recipes': {
@@ -285,6 +305,7 @@ const rootRouteChildren: RootRouteChildren = {
   InsightsRoute: InsightsRoute,
   LoginRoute: LoginRoute,
   RecipesRoute: RecipesRoute,
+  SettingsRoute: SettingsRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   ApiPublicExpiryRemindersRoute: ApiPublicExpiryRemindersRoute,
