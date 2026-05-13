@@ -210,6 +210,188 @@ function Pantry() {
   );
 }
 
+type GroupedProps = {
+  items: Item[];
+  onOpen: (i: Item) => void;
+  onStatus: (id: string, status: "used" | "wasted") => void;
+};
+
+function GroupedSections({ items, onOpen, onStatus }: GroupedProps) {
+  const useFirst = items.filter(
+    (i) => i.expiry_date && daysUntil(i.expiry_date) <= 2,
+  );
+  const fridge = items.filter((i) => i.location === "fridge");
+  const freezer = items.filter((i) => i.location === "freezer");
+  const cupboard = items.filter((i) => i.location === "cupboard");
+
+  return (
+    <div className="mt-6 space-y-4 px-5">
+      {useFirst.length > 0 && (
+        <Section
+          id="use-first"
+          title="Use First"
+          emoji="🔴"
+          count={useFirst.length}
+          items={useFirst}
+          collapsible={false}
+          onOpen={onOpen}
+          onStatus={onStatus}
+        />
+      )}
+      {fridge.length > 0 && (
+        <Section id="fridge" title="Fridge" emoji="🧊" count={fridge.length} items={fridge} onOpen={onOpen} onStatus={onStatus} />
+      )}
+      {freezer.length > 0 && (
+        <Section id="freezer" title="Freezer" emoji="❄️" count={freezer.length} items={freezer} onOpen={onOpen} onStatus={onStatus} />
+      )}
+      {cupboard.length > 0 && (
+        <Section id="cupboard" title="Cupboard" emoji="🗄️" count={cupboard.length} items={cupboard} onOpen={onOpen} onStatus={onStatus} />
+      )}
+    </div>
+  );
+}
+
+function Section({
+  id,
+  title,
+  emoji,
+  count,
+  items,
+  collapsible = true,
+  onOpen,
+  onStatus,
+}: {
+  id: string;
+  title: string;
+  emoji: string;
+  count: number;
+  items: Item[];
+  collapsible?: boolean;
+  onOpen: (i: Item) => void;
+  onStatus: (id: string, status: "used" | "wasted") => void;
+}) {
+  const [open, setOpen] = useState(true);
+  const expanded = !collapsible || open;
+  const HeaderTag = collapsible ? "button" : "div";
+  return (
+    <section>
+      <HeaderTag
+        {...(collapsible
+          ? {
+              type: "button" as const,
+              onClick: () => setOpen((o) => !o),
+              "aria-expanded": expanded,
+              "aria-controls": `section-${id}`,
+            }
+          : {})}
+        className={cn(
+          "flex w-full items-center justify-between rounded-xl px-1 py-1.5 text-left",
+          collapsible && "hover:bg-muted/50",
+        )}
+      >
+        <h2 className="font-serif text-lg">
+          {title} <span aria-hidden>{emoji}</span>{" "}
+          <span className="text-sm font-sans text-muted-foreground">
+            · {count} {count === 1 ? "item" : "items"}
+          </span>
+        </h2>
+        {collapsible && (
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 text-muted-foreground transition-transform",
+              !expanded && "-rotate-90",
+            )}
+          />
+        )}
+      </HeaderTag>
+      {expanded && (
+        <ul id={`section-${id}`} className="mt-2 space-y-2.5">
+          {items.map((item) => (
+            <ItemRow key={item.id} item={item} onOpen={onOpen} onStatus={onStatus} />
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function ItemRow({
+  item,
+  onOpen,
+  onStatus,
+}: {
+  item: Item;
+  onOpen: (i: Item) => void;
+  onStatus: (id: string, status: "used" | "wasted") => void;
+}) {
+  const days = item.expiry_date ? daysUntil(item.expiry_date) : 999;
+  const u = urgencyOf(days);
+  const tone =
+    u === "urgent"
+      ? "bg-urgent text-urgent-foreground"
+      : u === "warn"
+        ? "bg-warn text-warn-foreground"
+        : "bg-fresh text-fresh-foreground";
+  return (
+    <li
+      className={cn(
+        "rounded-2xl border bg-card p-3.5 shadow-sm transition-all",
+        u === "urgent" && "border-urgent-foreground/20",
+      )}
+    >
+      <div className="flex items-center gap-3">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-card-soft text-2xl">
+          {categoryEmoji(item.category)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <h3 className="truncate font-medium">{item.name}</h3>
+          </div>
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+            <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium", tone)}>
+              {urgencyLabel(days)}
+            </span>
+            <span className="inline-flex items-center gap-1 capitalize">
+              <span aria-hidden>{locationEmoji(item.location)}</span>
+              {item.location}
+            </span>
+            {item.opened_at && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 font-medium text-accent-foreground">
+                <PackageOpen className="h-3 w-3" /> Opened
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          {!item.opened_at && (
+            <button
+              onClick={() => onOpen(item)}
+              aria-label="Mark opened"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-card-soft text-foreground hover:bg-muted"
+            >
+              <PackageOpen className="h-4 w-4" />
+            </button>
+          )}
+          <button
+            onClick={() => onStatus(item.id, "used")}
+            aria-label="Mark used"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20"
+          >
+            <Check className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => onStatus(item.id, "wasted")}
+            aria-label="Mark wasted"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </li>
+  );
+}
+
 function Stat({ value, label, tone }: { value: React.ReactNode; label: string; tone: "urgent" | "fresh" | "neutral" }) {
   const toneCls =
     tone === "urgent"
