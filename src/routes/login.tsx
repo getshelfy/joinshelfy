@@ -90,12 +90,23 @@ function LoginPage() {
           <Button
             type="button"
             variant="outline"
-            onClick={handleGoogle}
+            onClick={() => handleOAuth("google")}
             disabled={oauthLoading}
             className="h-11 w-full text-base"
           >
             <GoogleIcon className="mr-2 h-4 w-4" />
-            {oauthLoading ? "Opening Google…" : "Continue with Google"}
+            {oauthLoading ? "Opening…" : "Continue with Google"}
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => handleOAuth("apple")}
+            disabled={oauthLoading}
+            className="h-11 w-full text-base"
+          >
+            <AppleIcon className="mr-2 h-4 w-4" />
+            {oauthLoading ? "Opening…" : "Continue with Apple"}
           </Button>
 
           <div className="flex items-center gap-3">
