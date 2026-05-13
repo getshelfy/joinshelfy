@@ -120,77 +120,11 @@ function Pantry() {
       ) : items.length === 0 ? (
         <EmptyState />
       ) : (
-        <ul className="mt-6 space-y-2.5 px-5">
-          {items.map((item) => {
-            const days = item.expiry_date ? daysUntil(item.expiry_date) : 999;
-            const u = urgencyOf(days);
-            const tone =
-              u === "urgent"
-                ? "bg-urgent text-urgent-foreground"
-                : u === "warn"
-                  ? "bg-warn text-warn-foreground"
-                  : "bg-fresh text-fresh-foreground";
-            return (
-              <li
-                key={item.id}
-                className={cn(
-                  "rounded-2xl border bg-card p-3.5 shadow-sm transition-all",
-                  u === "urgent" && "border-urgent-foreground/20",
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-card-soft text-2xl">
-                    {categoryEmoji(item.category)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <h3 className="truncate font-medium">{item.name}</h3>
-                    </div>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                      <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium", tone)}>
-                        {urgencyLabel(days)}
-                      </span>
-                      <span className="inline-flex items-center gap-1 capitalize">
-                        <span aria-hidden>{locationEmoji(item.location)}</span>
-                        {item.location}
-                      </span>
-                      {item.opened_at && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 font-medium text-accent-foreground">
-                          <PackageOpen className="h-3 w-3" /> Opened
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1">
-                    {!item.opened_at && (
-                      <button
-                        onClick={() => setOpenTarget(item)}
-                        aria-label="Mark opened"
-                        className="flex h-9 w-9 items-center justify-center rounded-full bg-card-soft text-foreground hover:bg-muted"
-                      >
-                        <PackageOpen className="h-4 w-4" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => markStatus(item.id, "used")}
-                      aria-label="Mark used"
-                      className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20"
-                    >
-                      <Check className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => markStatus(item.id, "wasted")}
-                      aria-label="Mark wasted"
-                      className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        <GroupedSections
+          items={items}
+          onOpen={(i) => setOpenTarget(i)}
+          onStatus={markStatus}
+        />
       )}
 
       {staples.length > 0 && (
