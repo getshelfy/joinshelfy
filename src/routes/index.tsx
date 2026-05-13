@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Header } from "@/components/header";
-import { daysUntil, urgencyLabel, urgencyOf } from "@/lib/food";
+import { daysUntil } from "@/lib/food";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Plus, Sprout, ChevronDown, AlertCircle } from "lucide-react";
