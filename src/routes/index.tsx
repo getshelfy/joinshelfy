@@ -88,57 +88,6 @@ function Home() {
   );
 }
 
-function UseFirstBanner({
-  items,
-  onOpen,
-  onStatus,
-}: {
-  items: Item[];
-  onOpen: (i: Item) => void;
-  onStatus: (id: string, status: "used" | "wasted") => void;
-}) {
-  const [open, setOpen] = useState(true);
-  return (
-    <section className="mt-5 px-5">
-      <div className="overflow-hidden rounded-2xl border border-urgent-foreground/30 bg-urgent/40">
-        <button
-          onClick={() => setOpen((o) => !o)}
-          className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-        >
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-urgent-foreground" />
-            <h2 className="font-serif text-lg text-urgent-foreground">
-              Use First <span aria-hidden>🔴</span>
-              <span className="ml-1 text-sm font-sans opacity-80">
-                · {items.length} {items.length === 1 ? "item" : "items"}
-              </span>
-            </h2>
-          </div>
-          <ChevronDown
-            className={cn(
-              "h-4 w-4 text-urgent-foreground transition-transform duration-200",
-              !open && "-rotate-90",
-            )}
-          />
-        </button>
-        {open && (
-          <ul className="space-y-2 px-3 pb-3">
-            {items.map((item) => (
-              <ItemRow
-                key={item.id}
-                item={item}
-                onOpen={onOpen}
-                onStatus={onStatus}
-                showLocation
-              />
-            ))}
-          </ul>
-        )}
-      </div>
-    </section>
-  );
-}
-
 function LocationCard({
   location,
   items,
