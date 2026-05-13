@@ -23,6 +23,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Plus, Check, Trash2, Sprout, PackageOpen, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export const Route = createFileRoute("/")({
   component: PantryPage,
@@ -271,47 +272,51 @@ function Section({
   onStatus: (id: string, status: "used" | "wasted") => void;
 }) {
   const [open, setOpen] = useState(true);
-  const expanded = !collapsible || open;
-  const HeaderTag = collapsible ? "button" : "div";
+  const heading = (
+    <h2 className="font-serif text-lg">
+      {title} <span aria-hidden>{emoji}</span>{" "}
+      <span className="text-sm font-sans text-muted-foreground">
+        · {count} {count === 1 ? "item" : "items"}
+      </span>
+    </h2>
+  );
+  const list = (
+    <ul className="mt-2 space-y-2.5">
+      {items.map((item) => (
+        <ItemRow key={item.id} item={item} onOpen={onOpen} onStatus={onStatus} />
+      ))}
+    </ul>
+  );
+
+  if (!collapsible) {
+    return (
+      <section>
+        <div className="flex w-full items-center justify-between rounded-xl px-1 py-1.5">
+          {heading}
+        </div>
+        {list}
+      </section>
+    );
+  }
+
   return (
-    <section>
-      <HeaderTag
-        {...(collapsible
-          ? {
-              type: "button" as const,
-              onClick: () => setOpen((o) => !o),
-              "aria-expanded": expanded,
-              "aria-controls": `section-${id}`,
-            }
-          : {})}
-        className={cn(
-          "flex w-full items-center justify-between rounded-xl px-1 py-1.5 text-left",
-          collapsible && "hover:bg-muted/50",
-        )}
-      >
-        <h2 className="font-serif text-lg">
-          {title} <span aria-hidden>{emoji}</span>{" "}
-          <span className="text-sm font-sans text-muted-foreground">
-            · {count} {count === 1 ? "item" : "items"}
-          </span>
-        </h2>
-        {collapsible && (
+    <Collapsible open={open} onOpenChange={setOpen} asChild>
+      <section>
+        <CollapsibleTrigger
+          className="flex w-full items-center justify-between rounded-xl px-1 py-1.5 text-left hover:bg-muted/50"
+          aria-controls={`section-${id}`}
+        >
+          {heading}
           <ChevronDown
             className={cn(
-              "h-4 w-4 text-muted-foreground transition-transform",
-              !expanded && "-rotate-90",
+              "h-4 w-4 text-muted-foreground transition-transform duration-200",
+              !open && "-rotate-90",
             )}
           />
-        )}
-      </HeaderTag>
-      {expanded && (
-        <ul id={`section-${id}`} className="mt-2 space-y-2.5">
-          {items.map((item) => (
-            <ItemRow key={item.id} item={item} onOpen={onOpen} onStatus={onStatus} />
-          ))}
-        </ul>
-      )}
-    </section>
+        </CollapsibleTrigger>
+        <CollapsibleContent id={`section-${id}`}>{list}</CollapsibleContent>
+      </section>
+    </Collapsible>
   );
 }
 
