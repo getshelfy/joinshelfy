@@ -162,6 +162,17 @@ function LoginPage() {
         <p className="mt-2 text-center text-xs text-muted-foreground">
           Guest data stays on this device. Sign in any time to save it to your account.
         </p>
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          By continuing you agree to our{" "}
+          <a href="https://tryshelfy.com/terms" target="_blank" rel="noreferrer" className="underline hover:text-foreground">
+            Terms of Service
+          </a>{" "}
+          and{" "}
+          <a href="https://tryshelfy.com/privacy" target="_blank" rel="noreferrer" className="underline hover:text-foreground">
+            Privacy Policy
+          </a>
+          .
+        </p>
       </div>
     </div>
   );
