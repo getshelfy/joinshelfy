@@ -88,3 +88,22 @@
   }
   h1, h2, h3, h4 { font-family: var(--font-serif); letter-spacing: -0.01em; }
 }
+
+@keyframes collapsible-down {
+  from { height: 0; opacity: 0; }
+  to { height: var(--radix-collapsible-content-height); opacity: 1; }
+}
+@keyframes collapsible-up {
+  from { height: var(--radix-collapsible-content-height); opacity: 1; }
+  to { height: 0; opacity: 0; }
+}
+[data-slot="collapsible-content"],
+[data-state][data-radix-collapsible-content] {
+  overflow: hidden;
+}
+[data-radix-collapsible-content][data-state="open"] {
+  animation: collapsible-down 220ms ease-out;
+}
+[data-radix-collapsible-content][data-state="closed"] {
+  animation: collapsible-up 180ms ease-out;
+}
