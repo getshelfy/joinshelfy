@@ -51,10 +51,10 @@ function LoginPage() {
     }
   };
 
-  const handleGoogle = async () => {
+  const handleOAuth = async (provider: "google" | "apple") => {
     setOauthLoading(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
+      const result = await lovable.auth.signInWithOAuth(provider, {
         redirect_uri: window.location.origin,
       });
       if (result.error) {
@@ -90,12 +90,23 @@ function LoginPage() {
           <Button
             type="button"
             variant="outline"
-            onClick={handleGoogle}
+            onClick={() => handleOAuth("google")}
             disabled={oauthLoading}
             className="h-11 w-full text-base"
           >
             <GoogleIcon className="mr-2 h-4 w-4" />
-            {oauthLoading ? "Opening Google…" : "Continue with Google"}
+            {oauthLoading ? "Opening…" : "Continue with Google"}
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => handleOAuth("apple")}
+            disabled={oauthLoading}
+            className="h-11 w-full text-base"
+          >
+            <AppleIcon className="mr-2 h-4 w-4" />
+            {oauthLoading ? "Opening…" : "Continue with Apple"}
           </Button>
 
           <div className="flex items-center gap-3">
@@ -151,6 +162,17 @@ function LoginPage() {
         <p className="mt-2 text-center text-xs text-muted-foreground">
           Guest data stays on this device. Sign in any time to save it to your account.
         </p>
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          By continuing you agree to our{" "}
+          <a href="https://tryshelfy.com/terms" target="_blank" rel="noreferrer" className="underline hover:text-foreground">
+            Terms of Service
+          </a>{" "}
+          and{" "}
+          <a href="https://tryshelfy.com/privacy" target="_blank" rel="noreferrer" className="underline hover:text-foreground">
+            Privacy Policy
+          </a>
+          .
+        </p>
       </div>
     </div>
   );
@@ -175,6 +197,14 @@ function GoogleIcon({ className }: { className?: string }) {
         d="M12 5.977c1.468 0 2.786.504 3.823 1.495l2.866-2.866C16.96 2.99 14.696 2 12 2A9.997 9.997 0 0 0 3.07 7.51l3.334 2.59C7.19 7.738 9.395 5.977 12 5.977z"
         fill="#EA4335"
       />
+    </svg>
+  );
+}
+
+function AppleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+      <path d="M16.365 1.43c0 1.14-.42 2.23-1.18 3.05-.84.92-2.21 1.63-3.32 1.54-.14-1.1.42-2.27 1.16-3.05.83-.88 2.27-1.55 3.34-1.54zM20.5 17.36c-.55 1.27-.81 1.84-1.51 2.96-.98 1.55-2.36 3.49-4.07 3.5-1.52.01-1.91-.99-3.97-.98-2.06.01-2.49 1-4.01.99-1.71-.01-3.02-1.76-4-3.32C.45 16.18-.39 11.06 1.85 7.6c1.59-2.45 4.1-3.88 6.46-3.88 2.4 0 3.91 1.32 5.9 1.32 1.93 0 3.1-1.32 5.88-1.32 2.1 0 4.32 1.14 5.9 3.12-5.18 2.84-4.34 10.24-1.49 10.52z"/>
     </svg>
   );
 }
