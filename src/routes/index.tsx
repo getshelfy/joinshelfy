@@ -192,30 +192,15 @@ function LocationCard({
 
       {expanded && (
         <ul className="space-y-2 border-t bg-card-soft/40 p-3">
-          {items.map((item) => {
-            const days = item.expiry_date ? daysUntil(item.expiry_date) : 999;
-            const u = urgencyOf(days);
-            // accent border by urgency
-            const accent =
-              u === "urgent"
-                ? "border-l-urgent-foreground"
-                : u === "warn"
-                  ? "border-l-warn-foreground"
-                  : "border-l-fresh-foreground";
-            return (
-              <div key={item.id} className={cn("rounded-2xl border-l-4 bg-card", accent)}>
-                <ItemRow
-                  item={item}
-                  onOpen={onOpen}
-                  onStatus={onStatus}
-                  showLocation={false}
-                />
-              </div>
-            );
-          })}
-          <p className="px-1 pt-1 text-[11px] text-muted-foreground">
-            Sorted by urgency · {urgencyLabel(items[0].expiry_date ? daysUntil(items[0].expiry_date) : 999)} on top
-          </p>
+          {items.map((item) => (
+            <ItemRow
+              key={item.id}
+              item={item}
+              onOpen={onOpen}
+              onStatus={onStatus}
+              showLocation={false}
+            />
+          ))}
         </ul>
       )}
     </section>
