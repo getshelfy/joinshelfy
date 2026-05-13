@@ -22,7 +22,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Check, Trash2, Sprout, PackageOpen } from "lucide-react";
+import { Plus, Check, Trash2, Sprout, PackageOpen, ChevronDown } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: PantryPage,
