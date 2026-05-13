@@ -35,9 +35,6 @@ function Home() {
 
   const expiringSoon = items.filter((i) => i.expiry_date && daysUntil(i.expiry_date) <= 2).length;
   const total = items.length;
-  const useFirst = items
-    .filter((i) => i.expiry_date && daysUntil(i.expiry_date) <= 2)
-    .sort((a, b) => (daysUntil(a.expiry_date!) - daysUntil(b.expiry_date!)));
 
   return (
     <>
@@ -56,29 +53,23 @@ function Home() {
       ) : items.length === 0 ? (
         <EmptyState />
       ) : (
-        <>
-          {useFirst.length > 0 && (
-            <UseFirstBanner items={useFirst} onOpen={setOpenTarget} onStatus={markStatus} />
-          )}
-
-          <div className="mt-4 space-y-3 px-5">
-            {(["fridge", "freezer", "cupboard"] as const).map((loc) => {
-              const locItems = items
-                .filter((i) => i.location === loc)
-                .sort((a, b) => (a.expiry_date || "").localeCompare(b.expiry_date || ""));
-              if (!locItems.length) return null;
-              return (
-                <LocationCard
-                  key={loc}
-                  location={loc}
-                  items={locItems}
-                  onOpen={setOpenTarget}
-                  onStatus={markStatus}
-                />
-              );
-            })}
-          </div>
-        </>
+        <div className="mt-5 space-y-3 px-5">
+          {(["fridge", "freezer", "cupboard"] as const).map((loc) => {
+            const locItems = items
+              .filter((i) => i.location === loc)
+              .sort((a, b) => (a.expiry_date || "").localeCompare(b.expiry_date || ""));
+            if (!locItems.length) return null;
+            return (
+              <LocationCard
+                key={loc}
+                location={loc}
+                items={locItems}
+                onOpen={setOpenTarget}
+                onStatus={markStatus}
+              />
+            );
+          })}
+        </div>
       )}
 
       <StaplesList staples={staples} onMarkUsed={(id) => markStatus(id, "used")} />
