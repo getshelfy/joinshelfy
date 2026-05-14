@@ -139,6 +139,13 @@ function RecipesPage() {
     generate(mode);
   };
 
+  const allPantry = useMemo(() => [...expiring, ...staples], [expiring, staples]);
+
+  const onItemsConsumed = async () => {
+    // Reload pantry so urgent list updates immediately
+    await loadPantry();
+  };
+
   return (
     <>
       <Header title="Tonight's ideas" subtitle="Cook from what you've got." />
