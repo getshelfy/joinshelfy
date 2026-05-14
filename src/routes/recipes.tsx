@@ -3,12 +3,21 @@ import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Header } from "@/components/header";
 import { supabase } from "@/integrations/supabase/client";
-import { listItemsForRecipes, type RecipeIngredient } from "@/lib/db";
+import { listItemsForRecipes, updateItemStatus, type RecipeIngredient } from "@/lib/db";
 import { daysUntil } from "@/lib/food";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Clock, ChefHat, Loader2, RefreshCw, Flame } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Sparkles, Clock, ChefHat, Loader2, RefreshCw, Flame, Check, PartyPopper } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { tap, tapLight, tapSelect } from "@/lib/haptics";
+import { tap, tapLight, tapSelect, tapSuccess } from "@/lib/haptics";
 
 export const Route = createFileRoute("/recipes")({
   component: () => (
@@ -130,6 +139,13 @@ function RecipesPage() {
     generate(mode);
   };
 
+  const allPantry = useMemo(() => [...expiring, ...staples], [expiring, staples]);
+
+  const onItemsConsumed = async () => {
+    // Reload pantry so urgent list updates immediately
+    await loadPantry();
+  };
+
   return (
     <>
       <Header title="Tonight's ideas" subtitle="Cook from what you've got." />
@@ -174,6 +190,8 @@ function RecipesPage() {
             loading={kitchenLoading}
             ready={pantryReady}
             urgentNames={urgentNames}
+            pantry={allPantry}
+            onItemsConsumed={onItemsConsumed}
             onRefresh={() => onRefresh("kitchen")}
             staples={staples}
             emptyHint="Add some items to your pantry first."
@@ -190,6 +208,8 @@ function RecipesPage() {
             loading={urgentLoading}
             ready={pantryReady}
             urgentNames={urgentNames}
+            pantry={allPantry}
+            onItemsConsumed={onItemsConsumed}
             onRefresh={() => onRefresh("use-first")}
           />
         )}
@@ -243,6 +263,8 @@ function Section({
   tone,
   staples,
   emptyHint,
+  pantry,
+  onItemsConsumed,
 }: {
   title: string;
   subtitle: string;
@@ -254,6 +276,8 @@ function Section({
   tone?: "urgent";
   staples?: RecipeIngredient[];
   emptyHint?: string;
+  pantry: RecipeIngredient[];
+  onItemsConsumed: () => void | Promise<void>;
 }) {
   return (
     <section className="mt-4 animate-page-in">
@@ -298,7 +322,7 @@ function Section({
             className="animate-tile-in"
             style={{ animationDelay: `${Math.min(i, 6) * 60}ms` }}
           >
-            <RecipeCard r={r} urgentNames={urgentNames} tone={tone} />
+            <RecipeCard r={r} urgentNames={urgentNames} tone={tone} pantry={pantry} onItemsConsumed={onItemsConsumed} />
           </div>
         ))}
       </div>
@@ -382,13 +406,37 @@ function RecipeCard({
   r,
   urgentNames,
   tone,
+  pantry,
+  onItemsConsumed,
 }: {
   r: Recipe;
   urgentNames: Set<string>;
   tone?: "urgent";
+  pantry: RecipeIngredient[];
+  onItemsConsumed: () => void | Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
+  const [madeOpen, setMadeOpen] = useState(false);
   const isUrgent = (name: string) => urgentNames.has(name.toLowerCase());
+
+  // Match recipe usesItems to actual pantry rows (case-insensitive substring)
+  const matchedPantry = useMemo(() => {
+    const matches: RecipeIngredient[] = [];
+    const seen = new Set<string>();
+    for (const u of r.usesItems) {
+      const needle = u.toLowerCase().trim();
+      const found = pantry.find(
+        (p) =>
+          !seen.has(p.id) &&
+          (p.name.toLowerCase().includes(needle) || needle.includes(p.name.toLowerCase())),
+      );
+      if (found) {
+        matches.push(found);
+        seen.add(found.id);
+      }
+    }
+    return matches;
+  }, [r.usesItems, pantry]);
 
   return (
     <article
@@ -430,16 +478,29 @@ function RecipeCard({
           );
         })}
       </div>
-      <button
-        onClick={() => {
-          tap();
-          setOpen(!open);
-        }}
-        className="tactile mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary"
-      >
-        <Sparkles className="h-3.5 w-3.5" />
-        {open ? "Hide" : "Show"} recipe
-      </button>
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <button
+          onClick={() => {
+            tap();
+            setOpen(!open);
+          }}
+          className="tactile inline-flex items-center gap-1 text-sm font-medium text-primary"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          {open ? "Hide" : "Show"} recipe
+        </button>
+        <button
+          onClick={() => {
+            tap();
+            setMadeOpen(true);
+          }}
+          disabled={matchedPantry.length === 0}
+          className="tactile inline-flex items-center gap-1 rounded-full bg-fresh px-3 py-1 text-xs font-semibold text-fresh-foreground ring-1 ring-fresh-foreground/20 disabled:opacity-40"
+        >
+          <Check className="h-3.5 w-3.5" />
+          Made it
+        </button>
+      </div>
       {open && (
         <div className="mt-3 space-y-3 border-t pt-3 text-sm animate-page-in">
           <div>
@@ -458,8 +519,204 @@ function RecipeCard({
               ))}
             </ol>
           </div>
+          <Button
+            onClick={() => {
+              tap();
+              setMadeOpen(true);
+            }}
+            disabled={matchedPantry.length === 0}
+            className="tactile w-full h-11 bg-fresh-foreground text-fresh hover:bg-fresh-foreground/90"
+          >
+            <Check className="mr-2 h-4 w-4" />
+            I made this ✓
+          </Button>
+          {matchedPantry.length === 0 && (
+            <p className="text-xs text-muted-foreground text-center">
+              No matching pantry items to log.
+            </p>
+          )}
         </div>
       )}
+
+      <MadeItDialog
+        open={madeOpen}
+        onOpenChange={setMadeOpen}
+        recipeName={r.name}
+        items={matchedPantry}
+        onConfirmed={onItemsConsumed}
+      />
     </article>
   );
 }
+
+function MadeItDialog({
+  open,
+  onOpenChange,
+  recipeName,
+  items,
+  onConfirmed,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  recipeName: string;
+  items: RecipeIngredient[];
+  onConfirmed: () => void | Promise<void>;
+}) {
+  type Phase = "select" | "saving" | "celebrate" | "summary";
+  const [phase, setPhase] = useState<Phase>("select");
+  const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [summary, setSummary] = useState<{ count: number; saved: number }>({ count: 0, saved: 0 });
+
+  useEffect(() => {
+    if (open) {
+      setPhase("select");
+      const init: Record<string, boolean> = {};
+      for (const i of items) init[i.id] = true;
+      setChecked(init);
+    }
+  }, [open, items]);
+
+  const toggle = (id: string) => {
+    tapSelect();
+    setChecked((c) => ({ ...c, [id]: !c[id] }));
+  };
+
+  const confirm = async () => {
+    const toUse = items.filter((i) => checked[i.id]);
+    if (!toUse.length) {
+      onOpenChange(false);
+      return;
+    }
+    setPhase("saving");
+    const saved = toUse.reduce((s, i) => s + Number(i.price || 0), 0);
+    try {
+      await Promise.all(toUse.map((i) => updateItemStatus(i.id, "used")));
+      tapSuccess();
+      setSummary({ count: toUse.length, saved });
+      setPhase("celebrate");
+      await onConfirmed();
+      setTimeout(() => setPhase("summary"), 1100);
+    } catch {
+      setPhase("select");
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        {phase === "select" && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="font-serif">I made {recipeName}</DialogTitle>
+              <DialogDescription>
+                Uncheck anything you didn't fully use. Checked items will be removed from your pantry.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="max-h-72 overflow-y-auto space-y-2 py-2">
+              {items.map((i) => {
+                const isChecked = !!checked[i.id];
+                return (
+                  <label
+                    key={i.id}
+                    className="tactile flex items-center gap-3 rounded-xl border bg-card-soft/40 p-3 cursor-pointer"
+                  >
+                    <Checkbox checked={isChecked} onCheckedChange={() => toggle(i.id)} />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium truncate">{i.name}</div>
+                      <div className="text-xs text-muted-foreground">{i.category}</div>
+                    </div>
+                    {i.expiry_date && daysUntil(i.expiry_date) <= 2 && (
+                      <span className="text-xs font-medium text-urgent-foreground">🔴 Expiring</span>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => onOpenChange(false)} className="tactile">
+                Cancel
+              </Button>
+              <Button
+                onClick={confirm}
+                className="tactile bg-fresh-foreground text-fresh hover:bg-fresh-foreground/90"
+              >
+                <Check className="mr-2 h-4 w-4" />
+                Confirm
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {phase === "saving" && (
+          <div className="py-12 flex flex-col items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Updating your pantry…</p>
+          </div>
+        )}
+
+        {phase === "celebrate" && (
+          <div className="py-12 flex flex-col items-center gap-3 animate-page-in">
+            <div className="relative">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-fresh-foreground text-fresh shadow-lg animate-tile-in">
+                <Check className="h-10 w-10" strokeWidth={3} />
+              </div>
+              <Confetti />
+            </div>
+            <p className="font-serif text-lg">Logged!</p>
+          </div>
+        )}
+
+        {phase === "summary" && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="font-serif flex items-center gap-2">
+                <PartyPopper className="h-5 w-5 text-fresh-foreground" />
+                Nice work
+              </DialogTitle>
+              <DialogDescription>
+                You used up {summary.count} {summary.count === 1 ? "item" : "items"}
+                {summary.saved > 0 && ` and avoided wasting £${summary.saved.toFixed(2)}`}.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                onClick={() => onOpenChange(false)}
+                className="tactile w-full bg-fresh-foreground text-fresh hover:bg-fresh-foreground/90"
+              >
+                Done
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Confetti() {
+  const pieces = Array.from({ length: 14 });
+  return (
+    <div className="pointer-events-none absolute inset-0">
+      {pieces.map((_, i) => {
+        const angle = (i / pieces.length) * 360;
+        const dist = 50 + Math.random() * 30;
+        const x = Math.cos((angle * Math.PI) / 180) * dist;
+        const y = Math.sin((angle * Math.PI) / 180) * dist;
+        const colors = ["bg-fresh-foreground", "bg-urgent-foreground", "bg-primary", "bg-fresh"];
+        const color = colors[i % colors.length];
+        return (
+          <span
+            key={i}
+            className={cn("absolute left-1/2 top-1/2 h-2 w-2 rounded-sm", color)}
+            style={{
+              animation: `confetti-fly 900ms cubic-bezier(0.22,1,0.36,1) forwards`,
+              ["--cx" as any]: `${x}px`,
+              ["--cy" as any]: `${y}px`,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
