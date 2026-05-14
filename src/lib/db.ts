@@ -205,7 +205,7 @@ export async function sumUsedSince(sinceIso: string): Promise<number> {
   return (data || []).reduce((s, r: any) => s + Number(r.price || 0), 0);
 }
 
-export type RecipeIngredient = { name: string; category: string; expiry_date: string | null; pantry_staple: boolean };
+export type RecipeIngredient = { id: string; name: string; category: string; expiry_date: string | null; pantry_staple: boolean; price: number | null };
 
 export async function listItemsForRecipes(limit = 8): Promise<{ expiring: RecipeIngredient[]; staples: RecipeIngredient[] }> {
   if (isGuest()) {
@@ -214,15 +214,15 @@ export async function listItemsForRecipes(limit = 8): Promise<{ expiring: Recipe
       .filter((i) => !i.is_pantry_staple)
       .sort((a, b) => (a.expiry_date || "").localeCompare(b.expiry_date || ""))
       .slice(0, limit)
-      .map((i) => ({ name: i.name, category: i.category, expiry_date: i.expiry_date, pantry_staple: false }));
+      .map((i) => ({ id: i.id, name: i.name, category: i.category, expiry_date: i.expiry_date, pantry_staple: false, price: i.price ?? 0 }));
     const staples = all
       .filter((i) => i.is_pantry_staple)
-      .map((i) => ({ name: i.name, category: i.category, expiry_date: null, pantry_staple: true }));
+      .map((i) => ({ id: i.id, name: i.name, category: i.category, expiry_date: null, pantry_staple: true, price: i.price ?? 0 }));
     return { expiring, staples };
   }
   const { data, error } = await supabase
     .from("food_items")
-    .select("name,category,expiry_date,is_pantry_staple,include_in_recipes")
+    .select("id,name,category,expiry_date,price,is_pantry_staple,include_in_recipes")
     .eq("status", "active")
     .eq("include_in_recipes", true);
   if (error) throw error;
@@ -231,10 +231,10 @@ export async function listItemsForRecipes(limit = 8): Promise<{ expiring: Recipe
     .filter((r) => !r.is_pantry_staple)
     .sort((a, b) => (a.expiry_date || "").localeCompare(b.expiry_date || ""))
     .slice(0, limit)
-    .map((r) => ({ name: r.name, category: r.category, expiry_date: r.expiry_date, pantry_staple: false }));
+    .map((r) => ({ id: r.id, name: r.name, category: r.category, expiry_date: r.expiry_date, pantry_staple: false, price: r.price ?? 0 }));
   const staples = rows
     .filter((r) => r.is_pantry_staple)
-    .map((r) => ({ name: r.name, category: r.category, expiry_date: null, pantry_staple: true }));
+    .map((r) => ({ id: r.id, name: r.name, category: r.category, expiry_date: null, pantry_staple: true, price: r.price ?? 0 }));
   return { expiring, staples };
 }
 
