@@ -1,9 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Header } from "@/components/header";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, Plus, Sprout } from "lucide-react";
 import { daysUntil } from "@/lib/food";
 import {
   ItemRow,
@@ -67,9 +68,20 @@ function PantryView() {
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       ) : items.length === 0 ? (
-        <p className="px-5 py-12 text-center text-sm text-muted-foreground">
-          No items yet. Add some from the Add tab.
-        </p>
+        <div className="mx-5 mt-10 rounded-3xl border bg-card p-8 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Sprout className="h-6 w-6" />
+          </div>
+          <h2 className="mt-4 font-serif text-xl">Your shelf is empty</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Add your first item and we'll track when it expires.
+          </p>
+          <Button asChild className="mt-5 h-11">
+            <Link to="/add">
+              <Plus className="mr-1 h-4 w-4" /> Add an item
+            </Link>
+          </Button>
+        </div>
       ) : (
         <div className="mt-5 space-y-5 px-5">
           <UrgencySection
