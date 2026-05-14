@@ -17,6 +17,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as AddRouteImport } from './routes/add'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LocationLocationRouteImport } from './routes/location.$location'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicExpiryRemindersRouteImport } from './routes/api/public/expiry-reminders'
@@ -64,6 +65,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LocationLocationRoute = LocationLocationRouteImport.update({
+  id: '/location/$location',
+  path: '/location/$location',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
   path: '/email/unsubscribe',
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/location/$location': typeof LocationLocationRoute
   '/api/public/expiry-reminders': typeof ApiPublicExpiryRemindersRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -125,6 +132,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/location/$location': typeof LocationLocationRoute
   '/api/public/expiry-reminders': typeof ApiPublicExpiryRemindersRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/location/$location': typeof LocationLocationRoute
   '/api/public/expiry-reminders': typeof ApiPublicExpiryRemindersRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -160,6 +169,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/unsubscribe'
     | '/email/unsubscribe'
+    | '/location/$location'
     | '/api/public/expiry-reminders'
     | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
@@ -176,6 +186,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/unsubscribe'
     | '/email/unsubscribe'
+    | '/location/$location'
     | '/api/public/expiry-reminders'
     | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
@@ -192,6 +203,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/unsubscribe'
     | '/email/unsubscribe'
+    | '/location/$location'
     | '/api/public/expiry-reminders'
     | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
@@ -209,6 +221,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
+  LocationLocationRoute: typeof LocationLocationRoute
   ApiPublicExpiryRemindersRoute: typeof ApiPublicExpiryRemindersRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -274,6 +287,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/location/$location': {
+      id: '/location/$location'
+      path: '/location/$location'
+      fullPath: '/location/$location'
+      preLoaderRoute: typeof LocationLocationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/email/unsubscribe': {
       id: '/email/unsubscribe'
       path: '/email/unsubscribe'
@@ -329,6 +349,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
+  LocationLocationRoute: LocationLocationRoute,
   ApiPublicExpiryRemindersRoute: ApiPublicExpiryRemindersRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
