@@ -25,22 +25,43 @@ export function BottomNav() {
               to={to}
               onClick={tap}
               className={cn(
-                "tactile flex flex-1 flex-col items-center justify-center gap-1 py-2.5 text-xs",
+                "tactile group relative flex flex-1 flex-col items-center justify-center gap-1 py-2.5 text-xs",
                 active ? "text-primary" : "text-muted-foreground hover:text-foreground",
               )}
             >
+              {active && !isAdd && (
+                <span
+                  aria-hidden
+                  className="absolute top-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-primary animate-nav-indicator"
+                />
+              )}
               <span
                 className={cn(
-                  "flex items-center justify-center rounded-full transition-all duration-200",
+                  "flex items-center justify-center rounded-full",
+                  "transition-[transform,background-color,box-shadow,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
                   isAdd
-                    ? "h-11 w-11 bg-primary text-primary-foreground shadow-md -mt-3 active:shadow-sm"
+                    ? "h-11 w-11 bg-primary text-primary-foreground shadow-md -mt-3 group-active:scale-90 group-active:shadow-sm"
                     : "h-7 w-7",
-                  active && !isAdd && "scale-110",
+                  active && !isAdd && "scale-110 -translate-y-0.5",
+                  !active && !isAdd && "group-active:scale-90",
                 )}
               >
-                <Icon className={cn(isAdd ? "h-5 w-5" : "h-5 w-5")} />
+                <Icon
+                  className={cn(
+                    "h-5 w-5 transition-transform duration-300",
+                    active && !isAdd && "drop-shadow-sm",
+                  )}
+                />
               </span>
-              <span className={cn("font-medium", isAdd && "sr-only")}>{label}</span>
+              <span
+                className={cn(
+                  "font-medium transition-opacity duration-200",
+                  isAdd && "sr-only",
+                  !active && !isAdd && "opacity-80",
+                )}
+              >
+                {label}
+              </span>
             </Link>
           );
         })}
