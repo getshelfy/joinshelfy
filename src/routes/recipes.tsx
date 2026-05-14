@@ -322,7 +322,7 @@ function Section({
             className="animate-tile-in"
             style={{ animationDelay: `${Math.min(i, 6) * 60}ms` }}
           >
-            <RecipeCard r={r} urgentNames={urgentNames} tone={tone} />
+            <RecipeCard r={r} urgentNames={urgentNames} tone={tone} pantry={pantry} onItemsConsumed={onItemsConsumed} />
           </div>
         ))}
       </div>
