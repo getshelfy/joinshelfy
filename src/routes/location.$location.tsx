@@ -2,6 +2,7 @@ import { createFileRoute, Link, useParams, notFound } from "@tanstack/react-rout
 import { ChevronLeft, AlertCircle } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { daysUntil } from "@/lib/food";
+import { tap } from "@/lib/haptics";
 import {
   ItemRow,
   locationEmoji,
@@ -50,12 +51,13 @@ function LocationView() {
       : `${sorted.length} ${sorted.length === 1 ? "item" : "items"}`;
 
   return (
-    <>
+    <div className="animate-page-in">
       <header className="px-5 pt-7 pb-4">
         <Link
           to="/"
           aria-label="Back"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-card-soft text-foreground hover:bg-muted"
+          onClick={tap}
+          className="tactile inline-flex h-9 w-9 items-center justify-center rounded-full bg-card-soft text-foreground hover:bg-muted"
         >
           <ChevronLeft className="h-5 w-5" />
         </Link>
@@ -86,7 +88,7 @@ function LocationView() {
           </p>
         </div>
       ) : (
-        <ul className="mt-2 space-y-2 px-5">
+        <ul className="mt-2 space-y-2 px-5 [&>li]:animate-tile-in">
           {sorted.map((item) => (
             <ItemRow
               key={item.id}
@@ -100,6 +102,6 @@ function LocationView() {
       )}
 
       {dialog}
-    </>
+    </div>
   );
 }
