@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Header } from "@/components/header";
 import { supabase } from "@/integrations/supabase/client";
 import { listItemsForRecipes, type RecipeIngredient } from "@/lib/db";
 import { daysUntil } from "@/lib/food";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Clock, ChefHat, Loader2 } from "lucide-react";
+import { Sparkles, Clock, ChefHat, Loader2, RefreshCw, Flame } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { tap, tapSelect } from "@/lib/haptics";
 
 export const Route = createFileRoute("/recipes")({
   component: () => (
@@ -27,94 +29,313 @@ type Recipe = {
   steps: string[];
 };
 
-function RecipesPage() {
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [hasItems, setHasItems] = useState(true);
-  const [staples, setStaples] = useState<RecipeIngredient[]>([]);
+type Tab = "kitchen" | "use-first";
 
-  const generate = async () => {
-    setLoading(true);
-    setRecipes([]);
-    try {
-      const { expiring, staples: stps } = await listItemsForRecipes(8);
-      setStaples(stps);
-      if (!expiring || expiring.length === 0) {
-        setHasItems(false);
+function RecipesPage() {
+  const [expiring, setExpiring] = useState<RecipeIngredient[]>([]);
+  const [staples, setStaples] = useState<RecipeIngredient[]>([]);
+  const [pantryReady, setPantryReady] = useState(false);
+
+  const [kitchenRecipes, setKitchenRecipes] = useState<Recipe[]>([]);
+  const [urgentRecipes, setUrgentRecipes] = useState<Recipe[]>([]);
+  const [kitchenLoading, setKitchenLoading] = useState(false);
+  const [urgentLoading, setUrgentLoading] = useState(false);
+
+  const urgentNames = useMemo(() => {
+    const set = new Set<string>();
+    for (const i of expiring) {
+      const d = i.expiry_date ? daysUntil(i.expiry_date) : 999;
+      if (d <= 2) set.add(i.name.toLowerCase());
+    }
+    return set;
+  }, [expiring]);
+
+  const hasUrgent = urgentNames.size > 0;
+  const [tab, setTab] = useState<Tab>("kitchen");
+
+  useEffect(() => {
+    if (!hasUrgent && tab === "use-first") setTab("kitchen");
+  }, [hasUrgent, tab]);
+
+  const loadPantry = async () => {
+    const { expiring: ex, staples: stps } = await listItemsForRecipes(12);
+    setExpiring(ex);
+    setStaples(stps);
+    setPantryReady(true);
+    return { ex, stps };
+  };
+
+  const generate = async (mode: Tab, source?: { ex: RecipeIngredient[]; stps: RecipeIngredient[] }) => {
+    const ex = source?.ex ?? expiring;
+    const stps = source?.stps ?? staples;
+    if (mode === "kitchen") {
+      if (!ex.length) {
+        setKitchenRecipes([]);
         return;
       }
-      setHasItems(true);
-      const payload = expiring.map((i) => ({
+      setKitchenLoading(true);
+      setKitchenRecipes([]);
+    } else {
+      const urgent = ex.filter((i) => i.expiry_date && daysUntil(i.expiry_date) <= 2);
+      if (!urgent.length) {
+        setUrgentRecipes([]);
+        return;
+      }
+      setUrgentLoading(true);
+      setUrgentRecipes([]);
+    }
+    try {
+      const items =
+        mode === "use-first"
+          ? ex.filter((i) => i.expiry_date && daysUntil(i.expiry_date) <= 2)
+          : ex;
+      const payload = items.map((i) => ({
         name: i.name,
         category: i.category,
         daysLeft: i.expiry_date ? daysUntil(i.expiry_date) : null,
       }));
       const staplesPayload = stps.map((i) => ({ name: i.name, category: i.category }));
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-recipes", {
+      const { data, error } = await supabase.functions.invoke("generate-recipes", {
         body: { items: payload, staples: staplesPayload },
       });
-      if (fnErr) throw fnErr;
+      if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      setRecipes(data?.recipes || []);
-    } catch (e: any) {
+      const result: Recipe[] = data?.recipes || [];
+      if (mode === "use-first") setUrgentRecipes(result.slice(0, 3));
+      else setKitchenRecipes(result);
+    } catch {
+      // ignore
     } finally {
-      setLoading(false);
+      if (mode === "kitchen") setKitchenLoading(false);
+      else setUrgentLoading(false);
     }
   };
 
   useEffect(() => {
-    generate();
+    (async () => {
+      const src = await loadPantry();
+      generate("kitchen", { ex: src.ex, stps: src.stps });
+      const urgent = src.ex.filter((i) => i.expiry_date && daysUntil(i.expiry_date) <= 2);
+      if (urgent.length) generate("use-first", { ex: src.ex, stps: src.stps });
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const onRefresh = (mode: Tab) => {
+    tapSelect();
+    generate(mode);
+  };
+
   return (
     <>
-      <Header title="Tonight's ideas" subtitle="Use what's about to expire — no shop needed." />
+      <Header title="Tonight's ideas" subtitle="Cook from what you've got." />
 
       <div className="px-5">
-        <Button onClick={generate} disabled={loading} className="w-full h-11">
-          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-          {loading ? "Cooking up ideas..." : "Generate new recipes"}
-        </Button>
-
-        {!hasItems && (
-          <div className="mt-8 rounded-2xl border bg-card p-6 text-center">
-            <ChefHat className="mx-auto h-8 w-8 text-muted-foreground" />
-            <p className="mt-2 text-sm text-muted-foreground">Add some items to your pantry first.</p>
-          </div>
-        )}
-
-        {loading && recipes.length === 0 && (
-          <div className="mt-8 space-y-3">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="h-28 animate-pulse rounded-2xl bg-card-soft" />
-            ))}
-          </div>
-        )}
-
-        <div className="mt-5 space-y-3 pb-4">
-          {recipes.map((r, i) => (
-            <RecipeCard key={i} r={r} />
-          ))}
+        {/* Tabs */}
+        <div
+          role="tablist"
+          className={cn(
+            "grid gap-2 rounded-2xl bg-card-soft p-1",
+            hasUrgent ? "grid-cols-2" : "grid-cols-1",
+          )}
+        >
+          <TabButton
+            active={tab === "kitchen"}
+            label="From your kitchen"
+            onClick={() => {
+              tap();
+              setTab("kitchen");
+            }}
+          />
+          {hasUrgent && (
+            <TabButton
+              active={tab === "use-first"}
+              label="Use First"
+              tone="urgent"
+              icon={<Flame className="h-4 w-4" />}
+              onClick={() => {
+                tap();
+                setTab("use-first");
+              }}
+            />
+          )}
         </div>
 
-        {staples.length > 0 && (
-          <div className="mt-2 mb-6 rounded-2xl border bg-card-soft p-4">
-            <h3 className="font-serif text-base">Also available in your pantry</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Staples factored into the recipes above.
-            </p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {staples.map((s) => (
-                <span key={s.name} className="inline-flex rounded-full bg-card px-2 py-0.5 text-xs">
-                  {s.name}
-                </span>
-              ))}
-            </div>
-          </div>
+        {tab === "kitchen" && (
+          <Section
+            key="kitchen"
+            title="From your kitchen"
+            subtitle="Suggestions using what you've got, prioritising what expires soonest."
+            recipes={kitchenRecipes}
+            loading={kitchenLoading}
+            ready={pantryReady}
+            urgentNames={urgentNames}
+            onRefresh={() => onRefresh("kitchen")}
+            staples={staples}
+            emptyHint="Add some items to your pantry first."
+          />
+        )}
+
+        {tab === "use-first" && hasUrgent && (
+          <Section
+            key="use-first"
+            title="Use these up today"
+            subtitle="Recipes built only from items expiring in the next 2 days."
+            tone="urgent"
+            recipes={urgentRecipes}
+            loading={urgentLoading}
+            ready={pantryReady}
+            urgentNames={urgentNames}
+            onRefresh={() => onRefresh("use-first")}
+          />
         )}
       </div>
     </>
+  );
+}
+
+function TabButton({
+  active,
+  label,
+  onClick,
+  tone,
+  icon,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+  tone?: "urgent";
+  icon?: React.ReactNode;
+}) {
+  return (
+    <button
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={cn(
+        "tactile relative flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium",
+        "transition-colors duration-200",
+        active
+          ? tone === "urgent"
+            ? "bg-urgent text-urgent-foreground shadow-sm"
+            : "bg-card text-foreground shadow-sm"
+          : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+function Section({
+  title,
+  subtitle,
+  recipes,
+  loading,
+  ready,
+  urgentNames,
+  onRefresh,
+  tone,
+  staples,
+  emptyHint,
+}: {
+  title: string;
+  subtitle: string;
+  recipes: Recipe[];
+  loading: boolean;
+  ready: boolean;
+  urgentNames: Set<string>;
+  onRefresh: () => void;
+  tone?: "urgent";
+  staples?: RecipeIngredient[];
+  emptyHint?: string;
+}) {
+  return (
+    <section className="mt-4 animate-page-in">
+      <div
+        className={cn(
+          "rounded-2xl border p-4",
+          tone === "urgent" ? "border-urgent-foreground/30 bg-urgent/30" : "bg-card-soft/40",
+        )}
+      >
+        <h2
+          className={cn(
+            "font-serif text-lg font-semibold",
+            tone === "urgent" && "text-urgent-foreground",
+          )}
+        >
+          {title}
+        </h2>
+        <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+      </div>
+
+      {loading && recipes.length === 0 && (
+        <div className="mt-3 space-y-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-28 animate-pulse rounded-2xl bg-card-soft" />
+          ))}
+        </div>
+      )}
+
+      {!loading && ready && recipes.length === 0 && (
+        <div className="mt-3 rounded-2xl border bg-card p-6 text-center">
+          <ChefHat className="mx-auto h-8 w-8 text-muted-foreground" />
+          <p className="mt-2 text-sm text-muted-foreground">
+            {emptyHint ?? "No recipes right now. Try refreshing."}
+          </p>
+        </div>
+      )}
+
+      <div className="mt-3 space-y-3">
+        {recipes.map((r, i) => (
+          <div
+            key={i}
+            className="animate-tile-in"
+            style={{ animationDelay: `${Math.min(i, 6) * 60}ms` }}
+          >
+            <RecipeCard r={r} urgentNames={urgentNames} tone={tone} />
+          </div>
+        ))}
+      </div>
+
+      {(recipes.length > 0 || (!loading && ready)) && (
+        <div className="mt-4 mb-2">
+          <Button
+            onClick={onRefresh}
+            disabled={loading}
+            variant={tone === "urgent" ? "default" : "outline"}
+            className={cn(
+              "tactile w-full h-11",
+              tone === "urgent" && "bg-urgent-foreground/90 text-urgent hover:bg-urgent-foreground",
+            )}
+          >
+            {loading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            {loading ? "Cooking up ideas…" : "Refresh recipes"}
+          </Button>
+        </div>
+      )}
+
+      {staples && staples.length > 0 && (
+        <div className="mt-3 mb-6 rounded-2xl border bg-card-soft p-4">
+          <h3 className="font-serif text-base">Also available in your pantry</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Staples factored into the recipes above.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {staples.map((s) => (
+              <span key={s.name} className="inline-flex rounded-full bg-card px-2 py-0.5 text-xs">
+                {s.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -151,10 +372,25 @@ function pickEmoji(r: Recipe): string {
   return "🥘";
 }
 
-function RecipeCard({ r }: { r: Recipe }) {
+function RecipeCard({
+  r,
+  urgentNames,
+  tone,
+}: {
+  r: Recipe;
+  urgentNames: Set<string>;
+  tone?: "urgent";
+}) {
   const [open, setOpen] = useState(false);
+  const isUrgent = (name: string) => urgentNames.has(name.toLowerCase());
+
   return (
-    <article className="rounded-2xl border bg-card p-4">
+    <article
+      className={cn(
+        "rounded-2xl border bg-card p-4 shadow-sm transition-colors",
+        tone === "urgent" && "border-urgent-foreground/20",
+      )}
+    >
       <div className="flex items-start gap-3">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-card-soft text-2xl">
           {pickEmoji(r)}
@@ -170,17 +406,36 @@ function RecipeCard({ r }: { r: Recipe }) {
           {r.cookTime}
         </span>
         <span className="inline-flex rounded-full bg-card-soft px-2 py-0.5">{r.difficulty}</span>
-        {r.usesItems.slice(0, 3).map((u) => (
-          <span key={u} className="inline-flex rounded-full bg-fresh px-2 py-0.5 text-fresh-foreground">
-            {u}
-          </span>
-        ))}
+        {r.usesItems.map((u) => {
+          const urgent = isUrgent(u);
+          return (
+            <span
+              key={u}
+              className={cn(
+                "inline-flex rounded-full px-2 py-0.5 font-medium",
+                urgent
+                  ? "bg-urgent text-urgent-foreground ring-1 ring-urgent-foreground/30"
+                  : "bg-fresh text-fresh-foreground",
+              )}
+            >
+              {urgent && <span className="mr-1" aria-hidden>🔴</span>}
+              {u}
+            </span>
+          );
+        })}
       </div>
-      <button onClick={() => setOpen(!open)} className="mt-3 text-sm font-medium text-primary">
+      <button
+        onClick={() => {
+          tap();
+          setOpen(!open);
+        }}
+        className="tactile mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary"
+      >
+        <Sparkles className="h-3.5 w-3.5" />
         {open ? "Hide" : "Show"} recipe
       </button>
       {open && (
-        <div className="mt-3 space-y-3 border-t pt-3 text-sm">
+        <div className="mt-3 space-y-3 border-t pt-3 text-sm animate-page-in">
           <div>
             <h4 className="font-serif text-base">Ingredients</h4>
             <ul className="mt-1 list-disc space-y-0.5 pl-5 text-muted-foreground">
