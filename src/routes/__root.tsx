@@ -1,6 +1,6 @@
 import { Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
-import { InstallPrompt } from "@/components/install-prompt";
+
 import { OfflineBanner } from "@/components/offline-banner";
 import { getAppIconLinks } from "@/components/app-icon-links";
 import appCss from "../styles.css?url";
@@ -59,7 +59,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
       <body>
         <OfflineBanner />
         {children}
-        <InstallPrompt />
+        
         <Toaster position="top-center" />
         <Scripts />
       </body>

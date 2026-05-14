@@ -32,7 +32,7 @@ export function BottomNav() {
               {active && !isAdd && (
                 <span
                   aria-hidden
-                  className="absolute top-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-primary animate-nav-indicator"
+                  className="pointer-events-none absolute top-0 left-0 right-0 mx-auto h-0.5 w-8 rounded-full bg-primary animate-nav-indicator"
                 />
               )}
               <span
