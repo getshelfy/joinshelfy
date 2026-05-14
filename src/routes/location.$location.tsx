@@ -88,20 +88,15 @@ function LocationView() {
           </p>
         </div>
       ) : (
-        <ul className="mt-2 space-y-2 px-5">
-          {sorted.map((item, i) => (
-            <li
+        <ul className="mt-2 space-y-2 px-5 [&>li]:animate-tile-in">
+          {sorted.map((item) => (
+            <ItemRow
               key={item.id}
-              className="animate-tile-in"
-              style={{ animationDelay: `${Math.min(i, 8) * 35}ms` }}
-            >
-              <ItemRow
-                item={item}
-                onOpen={setOpenTarget}
-                onStatus={markStatus}
-                showLocation={location === "use-first"}
-              />
-            </li>
+              item={item}
+              onOpen={setOpenTarget}
+              onStatus={markStatus}
+              showLocation={location === "use-first"}
+            />
           ))}
         </ul>
       )}

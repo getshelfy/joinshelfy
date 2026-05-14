@@ -1,6 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { Home, Plus, ChefHat, BarChart3, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { tap } from "@/lib/haptics";
 
 const items = [
   { to: "/", label: "Home", icon: Home },
