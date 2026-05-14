@@ -190,6 +190,8 @@ function RecipesPage() {
             loading={kitchenLoading}
             ready={pantryReady}
             urgentNames={urgentNames}
+            pantry={allPantry}
+            onItemsConsumed={onItemsConsumed}
             onRefresh={() => onRefresh("kitchen")}
             staples={staples}
             emptyHint="Add some items to your pantry first."
@@ -206,6 +208,8 @@ function RecipesPage() {
             loading={urgentLoading}
             ready={pantryReady}
             urgentNames={urgentNames}
+            pantry={allPantry}
+            onItemsConsumed={onItemsConsumed}
             onRefresh={() => onRefresh("use-first")}
           />
         )}
