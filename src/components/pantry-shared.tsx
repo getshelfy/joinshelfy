@@ -10,6 +10,7 @@ import {
   type FoodRow,
 } from "@/lib/db";
 import { categoryEmoji, daysUntil, urgencyLabel, urgencyOf } from "@/lib/food";
+import { tap, tapLight, tapSelect, tapSuccess, tapWarn } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -73,6 +74,8 @@ export function usePantryActions(
   const [opening, setOpening] = useState(false);
 
   const markStatus = async (id: string, status: "used" | "wasted") => {
+    if (status === "used") tapSuccess();
+    else tapWarn();
     try {
       await updateItemStatus(id, status);
       setItems((prev) => prev.filter((i) => i.id !== id));
@@ -85,6 +88,7 @@ export function usePantryActions(
   const confirmOpened = async (days: number) => {
     if (!openTarget || !Number.isFinite(days) || days < 1) return;
     setOpening(true);
+    tapSelect();
     try {
       const newExpiry = await markItemOpened(openTarget.id, Math.round(days));
       const openedAt = new Date().toISOString();
@@ -103,7 +107,10 @@ export function usePantryActions(
     <Dialog
       open={!!openTarget}
       onOpenChange={(o) => {
-        if (!o) {
+        if (o) {
+          tap();
+        } else {
+          tapLight();
           setOpenTarget(null);
           setCustomDays("");
         }
@@ -177,7 +184,7 @@ export function ItemRow({
   return (
     <li
       className={cn(
-        "rounded-2xl border bg-card p-3.5 shadow-sm transition-all",
+        "rounded-2xl border bg-card p-3.5 shadow-sm transition-all duration-200",
         u === "urgent" && "border-urgent-foreground/20",
       )}
     >
@@ -207,9 +214,12 @@ export function ItemRow({
         <div className="flex shrink-0 items-center gap-1">
           {!item.opened_at && (
             <button
-              onClick={() => onOpen(item)}
+              onClick={() => {
+                tap();
+                onOpen(item);
+              }}
               aria-label="Mark opened"
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-card-soft text-foreground hover:bg-muted"
+              className="tactile flex h-9 w-9 items-center justify-center rounded-full bg-card-soft text-foreground hover:bg-muted"
             >
               <PackageOpen className="h-4 w-4" />
             </button>
@@ -217,14 +227,14 @@ export function ItemRow({
           <button
             onClick={() => onStatus(item.id, "used")}
             aria-label="Mark used"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20"
+            className="tactile flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20"
           >
             <Check className="h-4 w-4" />
           </button>
           <button
             onClick={() => onStatus(item.id, "wasted")}
             aria-label="Mark wasted"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            className="tactile flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
           >
             <Trash2 className="h-4 w-4" />
           </button>
