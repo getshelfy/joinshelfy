@@ -3,12 +3,21 @@ import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Header } from "@/components/header";
 import { supabase } from "@/integrations/supabase/client";
-import { listItemsForRecipes, type RecipeIngredient } from "@/lib/db";
+import { listItemsForRecipes, updateItemStatus, type RecipeIngredient } from "@/lib/db";
 import { daysUntil } from "@/lib/food";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Clock, ChefHat, Loader2, RefreshCw, Flame } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Sparkles, Clock, ChefHat, Loader2, RefreshCw, Flame, Check, PartyPopper } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { tap, tapLight, tapSelect } from "@/lib/haptics";
+import { tap, tapLight, tapSelect, tapSuccess } from "@/lib/haptics";
 
 export const Route = createFileRoute("/recipes")({
   component: () => (
