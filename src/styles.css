@@ -126,32 +126,49 @@
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.25); opacity: 0.7; }
 }
+@keyframes nav-indicator {
+  from { opacity: 0; transform: translate(-50%, -4px) scaleX(0.4); }
+  to { opacity: 1; transform: translate(-50%, 0) scaleX(1); }
+}
 
 .animate-page-in { animation: page-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 .animate-tile-in { animation: tile-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 .animate-pop { animation: pop 220ms ease-out; }
 .animate-pulse-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
+.animate-nav-indicator { animation: nav-indicator 280ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
+/* Snappy press: scale down fast, release bouncy */
 .tactile {
   transition:
-    transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 160ms ease-out,
+    transform 90ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 120ms ease-out,
     background-color 160ms ease-out;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
 .tactile:active {
-  transform: scale(0.96);
+  transform: scale(0.94);
   box-shadow: none;
+  transition-duration: 60ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-page-in,
   .animate-tile-in,
   .animate-pop,
-  .animate-pulse-dot {
+  .animate-pulse-dot,
+  .animate-nav-indicator {
     animation: none !important;
   }
-  .tactile { transition: none; }
+  .tactile,
+  .tactile:active {
+    transition: none !important;
+    transform: none !important;
+  }
+  [data-radix-collapsible-content][data-state="open"],
+  [data-radix-collapsible-content][data-state="closed"] {
+    animation: none !important;
+  }
 }
+
 
