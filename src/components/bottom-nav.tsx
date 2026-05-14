@@ -23,17 +23,19 @@ export function BottomNav() {
             <Link
               key={to}
               to={to}
+              onClick={tap}
               className={cn(
-                "flex flex-1 flex-col items-center justify-center gap-1 py-2.5 text-xs transition-colors",
+                "tactile flex flex-1 flex-col items-center justify-center gap-1 py-2.5 text-xs",
                 active ? "text-primary" : "text-muted-foreground hover:text-foreground",
               )}
             >
               <span
                 className={cn(
-                  "flex items-center justify-center rounded-full transition-all",
+                  "flex items-center justify-center rounded-full transition-all duration-200",
                   isAdd
-                    ? "h-11 w-11 bg-primary text-primary-foreground shadow-md -mt-3"
+                    ? "h-11 w-11 bg-primary text-primary-foreground shadow-md -mt-3 active:shadow-sm"
                     : "h-7 w-7",
+                  active && !isAdd && "scale-110",
                 )}
               >
                 <Icon className={cn(isAdd ? "h-5 w-5" : "h-5 w-5")} />
