@@ -1,13 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Header } from "@/components/header";
 import { daysUntil } from "@/lib/food";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Plus, Sprout, ChevronDown } from "lucide-react";
+import { Plus, Sprout, ChevronRight } from "lucide-react";
 import {
-  ItemRow,
   Stat,
   StaplesList,
   locationEmoji,
@@ -31,9 +29,9 @@ function HomePage() {
 
 function Home() {
   const { items, setItems, staples, setStaples, loading, avoidedTotal } = usePantryData();
-  const { markStatus, setOpenTarget, dialog } = usePantryActions(setItems, setStaples);
+  const { markStatus } = usePantryActions(setItems, setStaples);
 
-  const expiringSoon = items.filter((i) => i.expiry_date && daysUntil(i.expiry_date) <= 2).length;
+  const urgent = items.filter((i) => i.expiry_date && daysUntil(i.expiry_date) <= 2);
   const total = items.length;
 
   return (
@@ -41,7 +39,7 @@ function Home() {
       <Header title="Your pantry" subtitle="Use it up to avoid waste" />
 
       <section className="grid grid-cols-3 gap-2 px-5">
-        <Stat value={expiringSoon} label="Expiring soon" tone="urgent" />
+        <Stat value={urgent.length} label="Expiring soon" tone="urgent" />
         <Stat value={total} label="Items tracked" tone="neutral" />
         <Stat value={`£${avoidedTotal.toFixed(0)}`} label="Waste avoided (30d)" tone="fresh" />
       </section>
@@ -54,18 +52,35 @@ function Home() {
         <EmptyState />
       ) : (
         <div className="mt-5 space-y-3 px-5">
+          <LocationCard
+            to="use-first"
+            emoji="🔴"
+            title="Use First"
+            items={urgent}
+            tone="urgent"
+            preview="Items expiring in 2 days"
+          />
           {(["fridge", "freezer", "cupboard"] as const).map((loc) => {
-            const locItems = items
-              .filter((i) => i.location === loc)
-              .sort((a, b) => (a.expiry_date || "").localeCompare(b.expiry_date || ""));
-            if (!locItems.length) return null;
+            const locItems = items.filter((i) => i.location === loc);
+            const locUrgent = locItems.filter(
+              (i) => i.expiry_date && daysUntil(i.expiry_date) <= 2,
+            ).length;
             return (
               <LocationCard
                 key={loc}
-                location={loc}
+                to={loc}
+                emoji={locationEmoji(loc)}
+                title={locationLabel(loc)}
                 items={locItems}
-                onOpen={setOpenTarget}
-                onStatus={markStatus}
+                urgentCount={locUrgent}
+                preview={
+                  locItems
+                    .slice()
+                    .sort((a, b) => (a.expiry_date || "").localeCompare(b.expiry_date || ""))
+                    .slice(0, 3)
+                    .map((p) => p.name)
+                    .join(" · ") || "Empty"
+                }
               />
             );
           })}
@@ -73,77 +88,65 @@ function Home() {
       )}
 
       <StaplesList staples={staples} onMarkUsed={(id) => markStatus(id, "used")} />
-
-      {dialog}
     </>
   );
 }
 
 function LocationCard({
-  location,
+  to,
+  emoji,
+  title,
   items,
-  onOpen,
-  onStatus,
+  urgentCount,
+  tone,
+  preview,
 }: {
-  location: "fridge" | "freezer" | "cupboard";
+  to: string;
+  emoji: string;
+  title: string;
   items: Item[];
-  onOpen: (i: Item) => void;
-  onStatus: (id: string, status: "used" | "wasted") => void;
+  urgentCount?: number;
+  tone?: "urgent";
+  preview: string;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const preview = items.slice(0, 3);
-  const urgentCount = items.filter((i) => i.expiry_date && daysUntil(i.expiry_date) <= 2).length;
+  const count = items.length;
+  const showBadge = tone === "urgent" ? count > 0 : (urgentCount ?? 0) > 0;
+  const badgeCount = tone === "urgent" ? count : (urgentCount ?? 0);
 
   return (
-    <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-      <button
-        onClick={() => setExpanded((e) => !e)}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/40"
-        aria-expanded={expanded}
-      >
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-card-soft text-2xl">
-          {locationEmoji(location)}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline justify-between gap-2">
-            <h2 className="font-serif text-lg leading-tight">{locationLabel(location)}</h2>
-            <span className="text-xs text-muted-foreground">
-              {items.length} {items.length === 1 ? "item" : "items"}
-            </span>
-          </div>
-          <div className="mt-1 flex items-center gap-1.5 overflow-hidden">
-            {urgentCount > 0 && (
-              <span className="shrink-0 rounded-full bg-urgent px-2 py-0.5 text-[11px] font-medium text-urgent-foreground">
-                {urgentCount} urgent
-              </span>
-            )}
-            <p className="truncate text-xs text-muted-foreground">
-              {preview.map((p) => p.name).join(" · ")}
-            </p>
-          </div>
-        </div>
-        <ChevronDown
-          className={cn(
-            "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
-            !expanded && "-rotate-90",
-          )}
-        />
-      </button>
-
-      {expanded && (
-        <ul className="space-y-2 border-t bg-card-soft/40 p-3">
-          {items.map((item) => (
-            <ItemRow
-              key={item.id}
-              item={item}
-              onOpen={onOpen}
-              onStatus={onStatus}
-              showLocation={false}
-            />
-          ))}
-        </ul>
+    <Link
+      to="/location/$location"
+      params={{ location: to }}
+      className={cn(
+        "group flex items-center gap-3 rounded-2xl border bg-card p-4 shadow-sm transition-all",
+        "active:scale-[0.98] active:shadow-none hover:bg-muted/40",
+        tone === "urgent" && "border-urgent-foreground/30 bg-urgent/30",
       )}
-    </section>
+    >
+      <div
+        className={cn(
+          "relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-3xl",
+          tone === "urgent" ? "bg-card" : "bg-card-soft",
+        )}
+      >
+        {emoji}
+        {showBadge && tone !== "urgent" && (
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-urgent px-1 text-[10px] font-semibold text-urgent-foreground ring-2 ring-card">
+            {badgeCount}
+          </span>
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="font-serif text-lg leading-tight">{title}</h2>
+          <span className="text-xs text-muted-foreground">
+            {count} {count === 1 ? "item" : "items"}
+          </span>
+        </div>
+        <p className="mt-1 truncate text-xs text-muted-foreground">{preview}</p>
+      </div>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+    </Link>
   );
 }
 
