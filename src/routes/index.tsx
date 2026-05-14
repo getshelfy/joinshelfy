@@ -3,6 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { Header } from "@/components/header";
 import { daysUntil } from "@/lib/food";
 import { cn } from "@/lib/utils";
+import { tap } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
 import { Plus, Sprout, ChevronRight } from "lucide-react";
 import {
@@ -59,8 +60,9 @@ function Home() {
             items={urgent}
             tone="urgent"
             preview="Items expiring in 2 days"
+            index={0}
           />
-          {(["fridge", "freezer", "cupboard"] as const).map((loc) => {
+          {(["fridge", "freezer", "cupboard"] as const).map((loc, i) => {
             const locItems = items.filter((i) => i.location === loc);
             const locUrgent = locItems.filter(
               (i) => i.expiry_date && daysUntil(i.expiry_date) <= 2,
@@ -73,6 +75,7 @@ function Home() {
                 title={locationLabel(loc)}
                 items={locItems}
                 urgentCount={locUrgent}
+                index={i + 1}
                 preview={
                   locItems
                     .slice()
@@ -99,7 +102,8 @@ function LocationCard({
   items,
   urgentCount,
   tone,
-  preview,
+  preview: _preview,
+  index = 0,
 }: {
   to: string;
   emoji: string;
@@ -108,6 +112,7 @@ function LocationCard({
   urgentCount?: number;
   tone?: "urgent";
   preview: string;
+  index?: number;
 }) {
   const count = items.length;
   const showBadge = tone === "urgent" ? count > 0 : (urgentCount ?? 0) > 0;
@@ -117,21 +122,23 @@ function LocationCard({
     <Link
       to="/location/$location"
       params={{ location: to }}
+      onClick={tap}
+      style={{ animationDelay: `${index * 60}ms` }}
       className={cn(
-        "group relative flex flex-col rounded-2xl border bg-card p-4 shadow-sm transition-all",
-        "active:scale-[0.97] active:shadow-none hover:bg-muted/40",
+        "group tactile animate-tile-in relative flex flex-col rounded-2xl border bg-card p-4 shadow-sm",
+        "hover:bg-muted/40",
         tone === "urgent" && "border-urgent-foreground/30 bg-urgent/30",
       )}
     >
       <div
         className={cn(
           "relative flex h-12 w-12 items-center justify-center rounded-2xl text-2xl",
-          tone === "urgent" ? "bg-card" : "bg-card-soft",
+          tone === "urgent" ? "bg-card animate-pulse-dot" : "bg-card-soft",
         )}
       >
         {emoji}
         {showBadge && tone !== "urgent" && (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-urgent px-1 text-[10px] font-semibold text-urgent-foreground ring-2 ring-card">
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-urgent px-1 text-[10px] font-semibold text-urgent-foreground ring-2 ring-card animate-pop">
             {badgeCount}
           </span>
         )}
@@ -140,7 +147,7 @@ function LocationCard({
       <p className="mt-0.5 text-xs text-muted-foreground">
         {count} {count === 1 ? "item" : "items"}
       </p>
-      <ChevronRight className="absolute right-3 top-3 h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+      <ChevronRight className="absolute right-3 top-3 h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 group-active:translate-x-1" />
     </Link>
   );
 }
