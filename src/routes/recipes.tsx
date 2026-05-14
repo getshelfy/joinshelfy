@@ -8,7 +8,7 @@ import { daysUntil } from "@/lib/food";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Clock, ChefHat, Loader2, RefreshCw, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { tap, tapSelect } from "@/lib/haptics";
+import { tap, tapLight, tapSelect } from "@/lib/haptics";
 
 export const Route = createFileRoute("/recipes")({
   component: () => (
@@ -38,7 +38,7 @@ function RecipesPage() {
 
   const [kitchenRecipes, setKitchenRecipes] = useState<Recipe[]>([]);
   const [urgentRecipes, setUrgentRecipes] = useState<Recipe[]>([]);
-  const [kitchenLoading, setKitchenLoading] = useState(false);
+  const [kitchenLoading, setKitchenLoading] = useState(true);
   const [urgentLoading, setUrgentLoading] = useState(false);
 
   const urgentNames = useMemo(() => {
@@ -112,11 +112,15 @@ function RecipesPage() {
   };
 
   useEffect(() => {
+    tapLight();
     (async () => {
       const src = await loadPantry();
-      generate("kitchen", { ex: src.ex, stps: src.stps });
       const urgent = src.ex.filter((i) => i.expiry_date && daysUntil(i.expiry_date) <= 2);
-      if (urgent.length) generate("use-first", { ex: src.ex, stps: src.stps });
+      if (urgent.length) {
+        setUrgentLoading(true);
+        generate("use-first", { ex: src.ex, stps: src.stps });
+      }
+      generate("kitchen", { ex: src.ex, stps: src.stps });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -304,10 +308,12 @@ function Section({
           <Button
             onClick={onRefresh}
             disabled={loading}
-            variant={tone === "urgent" ? "default" : "outline"}
+            variant="default"
             className={cn(
               "tactile w-full h-11",
-              tone === "urgent" && "bg-urgent-foreground/90 text-urgent hover:bg-urgent-foreground",
+              tone === "urgent"
+                ? "bg-urgent-foreground/90 text-urgent hover:bg-urgent-foreground"
+                : "bg-fresh-foreground text-fresh hover:bg-fresh-foreground/90",
             )}
           >
             {loading ? (
