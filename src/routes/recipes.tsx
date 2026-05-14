@@ -263,6 +263,8 @@ function Section({
   tone,
   staples,
   emptyHint,
+  pantry,
+  onItemsConsumed,
 }: {
   title: string;
   subtitle: string;
@@ -274,6 +276,8 @@ function Section({
   tone?: "urgent";
   staples?: RecipeIngredient[];
   emptyHint?: string;
+  pantry: RecipeIngredient[];
+  onItemsConsumed: () => void | Promise<void>;
 }) {
   return (
     <section className="mt-4 animate-page-in">
