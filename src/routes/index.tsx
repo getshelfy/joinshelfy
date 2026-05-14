@@ -51,7 +51,7 @@ function Home() {
       ) : items.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="mt-5 space-y-3 px-5">
+        <div className="mt-5 grid grid-cols-2 gap-3 px-5">
           <LocationCard
             to="use-first"
             emoji="🔴"
@@ -118,14 +118,14 @@ function LocationCard({
       to="/location/$location"
       params={{ location: to }}
       className={cn(
-        "group flex items-center gap-3 rounded-2xl border bg-card p-4 shadow-sm transition-all",
-        "active:scale-[0.98] active:shadow-none hover:bg-muted/40",
+        "group relative flex flex-col rounded-2xl border bg-card p-4 shadow-sm transition-all",
+        "active:scale-[0.97] active:shadow-none hover:bg-muted/40",
         tone === "urgent" && "border-urgent-foreground/30 bg-urgent/30",
       )}
     >
       <div
         className={cn(
-          "relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-3xl",
+          "relative flex h-12 w-12 items-center justify-center rounded-2xl text-2xl",
           tone === "urgent" ? "bg-card" : "bg-card-soft",
         )}
       >
@@ -136,16 +136,11 @@ function LocationCard({
           </span>
         )}
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-2">
-          <h2 className="font-serif text-lg leading-tight">{title}</h2>
-          <span className="text-xs text-muted-foreground">
-            {count} {count === 1 ? "item" : "items"}
-          </span>
-        </div>
-        <p className="mt-1 truncate text-xs text-muted-foreground">{preview}</p>
-      </div>
-      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+      <h2 className="mt-3 font-serif text-base leading-tight">{title}</h2>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        {count} {count === 1 ? "item" : "items"}
+      </p>
+      <ChevronRight className="absolute right-3 top-3 h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
     </Link>
   );
 }
