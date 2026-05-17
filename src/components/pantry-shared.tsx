@@ -116,28 +116,27 @@ export function usePantryActions(
         }
       }}
     >
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Mark as opened</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="w-[85%] max-w-[340px] rounded-2xl border border-border/40 bg-background p-5 shadow-xl shadow-black/10 sm:p-6">
+        <DialogHeader className="pb-1">
+          <DialogTitle className="font-serif text-xl">Mark as opened</DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground">
             {openTarget?.name ? `Use ${openTarget.name} within how many days?` : "Use within how many days?"}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-5 gap-2 pt-2">
           {[1, 2, 3, 5, 7].map((d) => (
             <Button
               key={d}
               variant="outline"
               disabled={opening}
               onClick={() => confirmOpened(d)}
-              className="h-12 flex-col"
+              className="h-10 rounded-full border-border bg-card-soft text-sm font-semibold hover:bg-primary/10 hover:text-primary hover:border-primary/30"
             >
-              <span className="text-base font-semibold leading-none">{d}</span>
-              <span className="text-[10px] opacity-70">day{d === 1 ? "" : "s"}</span>
+              {d}d
             </Button>
           ))}
         </div>
-        <div className="flex items-center gap-2 pt-1">
+        <div className="flex items-center gap-2 pt-3">
           <Input
             type="number"
             inputMode="numeric"
@@ -146,10 +145,12 @@ export function usePantryActions(
             placeholder="Custom days"
             value={customDays}
             onChange={(e) => setCustomDays(e.target.value)}
+            className="rounded-xl border-border bg-card-soft"
           />
           <Button
             disabled={opening || !customDays || Number(customDays) < 1}
             onClick={() => confirmOpened(Number(customDays))}
+            className="h-10 rounded-full px-5"
           >
             Set
           </Button>
