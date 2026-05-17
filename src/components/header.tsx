@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Settings, Sprout } from "lucide-react";
+import { Sprout } from "lucide-react";
 
 export function Header({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
@@ -10,13 +10,6 @@ export function Header({ title, subtitle }: { title: string; subtitle?: string }
             <Sprout className="h-4 w-4" />
           </span>
           <span className="font-serif text-lg font-semibold">Shelfy</span>
-        </Link>
-        <Link
-          to="/settings"
-          aria-label="Settings"
-          className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          <Settings className="h-4 w-4" />
         </Link>
       </div>
       <h1 className="mt-5 font-serif text-3xl font-semibold leading-tight">{title}</h1>
