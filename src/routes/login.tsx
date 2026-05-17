@@ -184,7 +184,7 @@ function LoginPage() {
             </Button>
             <button
               type="button"
-              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+              onClick={() => { setError(null); setMode(mode === "signin" ? "signup" : "signin"); }}
               className="block w-full text-center text-sm text-muted-foreground hover:text-foreground"
             >
               {mode === "signin" ? "New here? Create an account" : "Already have an account? Sign in"}
