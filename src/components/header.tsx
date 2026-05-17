@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { Sprout } from "lucide-react";
 
 export function Header({ title, subtitle }: { title: string; subtitle?: string }) {
