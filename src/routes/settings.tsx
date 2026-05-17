@@ -25,7 +25,7 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const { user, isGuest: guest } = useAuth();
-  const navigate = useNavigate();
+  
   const callDelete = useServerFn(deleteAccount);
   const [deleting, setDeleting] = useState(false);
 
