@@ -171,6 +171,14 @@ function LoginPage() {
                 autoComplete={mode === "signin" ? "current-password" : "new-password"}
               />
             </div>
+            {error && (
+              <div
+                role="alert"
+                className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              >
+                {error}
+              </div>
+            )}
             <Button type="submit" disabled={loading} className="h-11 w-full text-base">
               {loading ? "..." : mode === "signin" ? "Sign in" : "Create account"}
             </Button>
