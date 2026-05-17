@@ -31,8 +31,14 @@ function SettingsPage() {
 
   const handleSignOut = async () => {
     if (isGuest()) endGuest();
-    await supabase.auth.signOut();
-    navigate({ to: "/login" });
+    try {
+      await supabase.auth.signOut({ scope: "global" });
+    } catch {}
+    // Force-clear in-memory session, then hard redirect so no stale state survives.
+    try {
+      await supabase.auth.setSession(null as any);
+    } catch {}
+    window.location.replace("/login");
   };
 
   const handleDelete = async () => {
@@ -42,9 +48,10 @@ function SettingsPage() {
         endGuest();
       } else {
         await callDelete();
-        await supabase.auth.signOut();
+        try { await supabase.auth.signOut({ scope: "global" }); } catch {}
+        try { await supabase.auth.setSession(null as any); } catch {}
       }
-      navigate({ to: "/login" });
+      window.location.replace("/login");
     } catch (e) {
       setDeleting(false);
     }
