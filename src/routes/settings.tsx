@@ -30,13 +30,25 @@ function SettingsPage() {
   const [deleting, setDeleting] = useState(false);
 
   const handleSignOut = async () => {
+    // Mark sign-out in progress so the login page does not auto-redirect.
+    try {
+      sessionStorage.setItem("shelfy:signing-out", String(Date.now()));
+    } catch {}
     if (isGuest()) endGuest();
     try {
       await supabase.auth.signOut({ scope: "global" });
     } catch {}
-    // Force-clear in-memory session, then hard redirect so no stale state survives.
     try {
       await supabase.auth.setSession(null as any);
+    } catch {}
+    // Nuke any cached supabase auth keys in both storages.
+    try {
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith("sb-") || k.includes("supabase"))
+        .forEach((k) => localStorage.removeItem(k));
+      sessionStorage.clear();
+      // Re-set the signing-out marker since we just cleared sessionStorage.
+      sessionStorage.setItem("shelfy:signing-out", String(Date.now()));
     } catch {}
     window.location.replace("/login");
   };

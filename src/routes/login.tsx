@@ -19,17 +19,42 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session || isGuest()) navigate({ to: "/" });
+    const isRecentSignout = () => {
+      try {
+        const ts = Number(sessionStorage.getItem("shelfy:signing-out") || 0);
+        return ts && Date.now() - ts < 2000;
+      } catch {
+        return false;
+      }
+    };
+
+    if (!isRecentSignout()) {
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session || isGuest()) navigate({ to: "/" });
+      });
+    } else {
+      setTimeout(() => {
+        try { sessionStorage.removeItem("shelfy:signing-out"); } catch {}
+      }, 2100);
+    }
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session && !isRecentSignout()) {
+        navigate({ to: "/" });
+      }
     });
+    return () => sub.subscription.unsubscribe();
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     try {
+      try { sessionStorage.removeItem("shelfy:signing-out"); } catch {}
       if (mode === "signup") {
         const { data, error } = await supabase.auth.signUp({
           email,
@@ -39,6 +64,8 @@ function LoginPage() {
         if (error) throw error;
         if (data.user) {
           navigate({ to: "/" });
+        } else {
+          setError("Check your email to confirm your account before signing in.");
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -46,6 +73,7 @@ function LoginPage() {
         navigate({ to: "/" });
       }
     } catch (err: any) {
+      setError(err?.message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -53,17 +81,21 @@ function LoginPage() {
 
   const handleOAuth = async (provider: "google" | "apple") => {
     setOauthLoading(true);
+    setError(null);
+    try { sessionStorage.removeItem("shelfy:signing-out"); } catch {}
     try {
       const result = await lovable.auth.signInWithOAuth(provider, {
         redirect_uri: window.location.origin,
       });
       if (result.error) {
+        setError(result.error.message || "Sign-in failed. Please try again.");
         setOauthLoading(false);
         return;
       }
       if (result.redirected) return;
       navigate({ to: "/" });
     } catch (err: any) {
+      setError(err?.message || "Sign-in failed. Please try again.");
       setOauthLoading(false);
     }
   };
@@ -139,12 +171,20 @@ function LoginPage() {
                 autoComplete={mode === "signin" ? "current-password" : "new-password"}
               />
             </div>
+            {error && (
+              <div
+                role="alert"
+                className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              >
+                {error}
+              </div>
+            )}
             <Button type="submit" disabled={loading} className="h-11 w-full text-base">
               {loading ? "..." : mode === "signin" ? "Sign in" : "Create account"}
             </Button>
             <button
               type="button"
-              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+              onClick={() => { setError(null); setMode(mode === "signin" ? "signup" : "signin"); }}
               className="block w-full text-center text-sm text-muted-foreground hover:text-foreground"
             >
               {mode === "signin" ? "New here? Create an account" : "Already have an account? Sign in"}
