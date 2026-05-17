@@ -80,7 +80,16 @@
 
 @layer base {
   * { border-color: var(--color-border); }
-  html, body { background-color: var(--color-background); color: var(--color-foreground); }
+  html, body {
+    background-color: #FAF8F3;
+    color: var(--color-foreground);
+    margin: 0;
+    padding: 0;
+    /* Bottom overscroll / safe area shows white to match the nav */
+    background-image: linear-gradient(to bottom, #FAF8F3 0%, #FAF8F3 70%, #FFFFFF 70%, #FFFFFF 100%);
+    background-attachment: fixed;
+    overscroll-behavior-y: none;
+  }
   body {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
