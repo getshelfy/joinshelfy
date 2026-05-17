@@ -80,7 +80,25 @@
 
 @layer base {
   * { border-color: var(--color-border); }
-  html, body { background-color: var(--color-background); color: var(--color-foreground); }
+  html, body {
+    background-color: #FAF8F3;
+    color: var(--color-foreground);
+    margin: 0;
+    padding: 0;
+    overscroll-behavior-y: none;
+  }
+  /* Bottom safe-area sits beneath the fixed nav — paint it white to match */
+  body::after {
+    content: "";
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: env(safe-area-inset-bottom);
+    background: #FFFFFF;
+    z-index: 30;
+    pointer-events: none;
+  }
   body {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
