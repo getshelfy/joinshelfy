@@ -26,7 +26,23 @@ export function useAuth() {
       } catch {}
     };
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === "SIGNED_OUT") {
+        // Always clear local state and redirect — no exceptions.
+        setSession(null);
+        setUser(null);
+        setGuest(false);
+        try {
+          // Belt-and-braces: nuke any cached supabase session keys.
+          Object.keys(localStorage)
+            .filter((k) => k.startsWith("sb-") || k.startsWith("supabase."))
+            .forEach((k) => localStorage.removeItem(k));
+        } catch {}
+        if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+          window.location.replace("/login");
+        }
+        return;
+      }
       setSession(s);
       if (s?.user) {
         pauseGuest();
