@@ -449,6 +449,69 @@ function Section({
   );
 }
 
+function SavedSection({
+  recipes,
+  urgentNames,
+  pantry,
+  onItemsConsumed,
+  savedKeys,
+  onToggleSaved,
+  guest,
+}: {
+  recipes: SavedRecipe[];
+  urgentNames: Set<string>;
+  pantry: RecipeIngredient[];
+  onItemsConsumed: () => void | Promise<void>;
+  savedKeys: Set<string>;
+  onToggleSaved: (r: Recipe, currentlySaved: boolean) => Promise<void>;
+  guest: boolean;
+}) {
+  return (
+    <section className="mt-4 animate-page-in">
+      <div className="rounded-2xl border p-4 bg-card-soft/40">
+        <h2 className="font-serif text-lg font-semibold">Saved recipes</h2>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Your bookmarked ideas — pantry matches update as your kitchen changes.
+        </p>
+      </div>
+
+      {guest && (
+        <p className="mt-3 px-1 text-xs text-muted-foreground text-center">
+          Create an account to keep your saved recipes forever.
+        </p>
+      )}
+
+      {recipes.length === 0 ? (
+        <div className="mt-3 rounded-2xl border bg-card p-6 text-center">
+          <Bookmark className="mx-auto h-8 w-8 text-muted-foreground" />
+          <p className="mt-2 text-sm text-muted-foreground">
+            No saved recipes yet. Tap the bookmark icon on a recipe to save it.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-3 space-y-3">
+          {recipes.map((r, i) => (
+            <div
+              key={recipeKey(r)}
+              className="animate-tile-in"
+              style={{ animationDelay: `${Math.min(i, 6) * 60}ms` }}
+            >
+              <RecipeCard
+                r={r as Recipe}
+                urgentNames={urgentNames}
+                pantry={pantry}
+                onItemsConsumed={onItemsConsumed}
+                isSaved={savedKeys.has(recipeKey(r))}
+                onToggleSaved={onToggleSaved}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function pickEmoji(r: Recipe): string {
   if (r.emoji && r.emoji !== "🍽️" && r.emoji !== "🍽") return r.emoji;
   const n = r.name.toLowerCase();
