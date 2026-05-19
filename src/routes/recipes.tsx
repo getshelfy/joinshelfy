@@ -333,6 +333,8 @@ function Section({
   emptyHint,
   pantry,
   onItemsConsumed,
+  savedKeys,
+  onToggleSaved,
 }: {
   title: string;
   subtitle: string;
@@ -346,6 +348,8 @@ function Section({
   emptyHint?: string;
   pantry: RecipeIngredient[];
   onItemsConsumed: () => void | Promise<void>;
+  savedKeys: Set<string>;
+  onToggleSaved: (r: Recipe, currentlySaved: boolean) => Promise<void>;
 }) {
   return (
     <section className="mt-4 animate-page-in">
