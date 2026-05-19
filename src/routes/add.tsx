@@ -355,6 +355,18 @@ function BarcodeScanner({
   const [torchSupported, setTorchSupported] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
   const detectedRef = useRef(false);
+  const recentScansRef = useRef<{ code: string; t: number }[]>([]);
+
+  // Allowed barcode formats (whitelist). Anything else is rejected.
+  const ALLOWED_FORMATS = new Set<BarcodeFormat>([
+    BarcodeFormat.EAN_13,
+    BarcodeFormat.EAN_8,
+    BarcodeFormat.UPC_A,
+    BarcodeFormat.UPC_E,
+    BarcodeFormat.CODE_128,
+    BarcodeFormat.CODE_39,
+    BarcodeFormat.QR_CODE,
+  ]);
 
   async function toggleTorch() {
     const track = trackRef.current;
