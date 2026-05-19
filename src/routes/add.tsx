@@ -638,9 +638,9 @@ function BarcodeScanner({
                 if (!v) return;
                 if (/^\d{6,}$/.test(v)) {
                   setLooking(true);
-                  const product = await lookupBarcode(v);
+                  const lookup = await lookupBarcode(v);
                   setLooking(false);
-                  if (product?.name) return onProduct(product);
+                  if (lookup.status === "found") return onProduct(lookup.product);
                   return onSkipManual(v);
                 }
                 onSkipManual(v);
