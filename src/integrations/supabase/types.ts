@@ -200,6 +200,30 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_recipes: {
+        Row: {
+          created_at: string
+          id: string
+          recipe: Json
+          recipe_key: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          recipe: Json
+          recipe_key: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          recipe?: Json
+          recipe_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
