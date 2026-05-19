@@ -15,9 +15,21 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Sparkles, Clock, ChefHat, Loader2, RefreshCw, Flame, Check, PartyPopper } from "lucide-react";
+import { Sparkles, Clock, ChefHat, Loader2, RefreshCw, Flame, Check, PartyPopper, Bookmark, BookmarkCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { tap, tapLight, tapSelect, tapSuccess } from "@/lib/haptics";
+import { listSavedRecipes, saveRecipe, unsaveRecipe, recipeKey, type SavedRecipe } from "@/lib/saved-recipes";
+import { isGuest } from "@/lib/guest";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/recipes")({
   component: () => (
