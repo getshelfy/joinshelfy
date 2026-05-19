@@ -394,7 +394,15 @@ function Section({
             className="animate-tile-in"
             style={{ animationDelay: `${Math.min(i, 6) * 60}ms` }}
           >
-            <RecipeCard r={r} urgentNames={urgentNames} tone={tone} pantry={pantry} onItemsConsumed={onItemsConsumed} />
+            <RecipeCard
+              r={r}
+              urgentNames={urgentNames}
+              tone={tone}
+              pantry={pantry}
+              onItemsConsumed={onItemsConsumed}
+              isSaved={savedKeys.has(recipeKey(r))}
+              onToggleSaved={onToggleSaved}
+            />
           </div>
         ))}
       </div>
