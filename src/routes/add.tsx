@@ -389,6 +389,7 @@ function BarcodeScanner({
       BarcodeFormat.UPC_E,
       BarcodeFormat.CODE_128,
       BarcodeFormat.CODE_39,
+      BarcodeFormat.QR_CODE,
     ]);
     hints.set(DecodeHintType.TRY_HARDER, true);
     const reader = new MultiFormatReader();
