@@ -20,7 +20,6 @@ import {
   RGBLuminanceSource,
   HybridBinarizer,
   BinaryBitmap,
-  NotFoundException,
 } from "@zxing/library";
 
 export const Route = createFileRoute("/add")({
