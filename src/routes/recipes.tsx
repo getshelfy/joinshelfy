@@ -488,15 +488,21 @@ function RecipeCard({
   tone,
   pantry,
   onItemsConsumed,
+  isSaved,
+  onToggleSaved,
 }: {
   r: Recipe;
   urgentNames: Set<string>;
   tone?: "urgent";
   pantry: RecipeIngredient[];
   onItemsConsumed: () => void | Promise<void>;
+  isSaved: boolean;
+  onToggleSaved: (r: Recipe, currentlySaved: boolean) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [madeOpen, setMadeOpen] = useState(false);
+  const [confirmUnsave, setConfirmUnsave] = useState(false);
+  const [savingToggle, setSavingToggle] = useState(false);
   const isUrgent = (name: string) => urgentNames.has(name.toLowerCase());
 
   // Match recipe usesItems to actual pantry rows (case-insensitive substring)
@@ -518,14 +524,58 @@ function RecipeCard({
     return matches;
   }, [r.usesItems, pantry]);
 
+  const handleBookmark = async () => {
+    tapSelect();
+    if (isSaved) {
+      setConfirmUnsave(true);
+      return;
+    }
+    setSavingToggle(true);
+    try {
+      await onToggleSaved(r, false);
+      tapSuccess();
+    } finally {
+      setSavingToggle(false);
+    }
+  };
+
+  const doUnsave = async () => {
+    setSavingToggle(true);
+    try {
+      await onToggleSaved(r, true);
+    } finally {
+      setSavingToggle(false);
+      setConfirmUnsave(false);
+    }
+  };
+
   return (
     <article
       className={cn(
-        "rounded-2xl border bg-card p-4 shadow-sm transition-colors",
+        "relative rounded-2xl border bg-card p-4 shadow-sm transition-colors",
         tone === "urgent" && "border-urgent-foreground/20",
       )}
     >
-      <div className="flex items-start gap-3">
+      <button
+        type="button"
+        aria-label={isSaved ? "Remove from saved" : "Save recipe"}
+        onClick={handleBookmark}
+        disabled={savingToggle}
+        className={cn(
+          "tactile absolute top-3 right-3 flex h-9 w-9 items-center justify-center rounded-full",
+          isSaved
+            ? "bg-primary/10 text-primary"
+            : "bg-card-soft text-muted-foreground hover:text-foreground",
+        )}
+        style={isSaved ? { color: "#2D9B6F" } : undefined}
+      >
+        {isSaved ? (
+          <BookmarkCheck className="h-5 w-5" fill="#2D9B6F" strokeWidth={2} />
+        ) : (
+          <Bookmark className="h-5 w-5" />
+        )}
+      </button>
+      <div className="flex items-start gap-3 pr-10">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-card-soft text-2xl">
           {pickEmoji(r)}
         </div>
@@ -534,6 +584,20 @@ function RecipeCard({
           <p className="mt-1 text-sm text-muted-foreground">{r.description}</p>
         </div>
       </div>
+      <AlertDialog open={confirmUnsave} onOpenChange={setConfirmUnsave}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove from saved?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{r.name}" will be removed from your saved recipes. You can save it again any time.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep saved</AlertDialogCancel>
+            <AlertDialogAction onClick={doUnsave}>Remove</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-xs">
         <span className="inline-flex items-center gap-1 rounded-full bg-card-soft px-2 py-0.5">
           <Clock className="h-3 w-3" />
