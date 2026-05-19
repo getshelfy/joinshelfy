@@ -7,8 +7,23 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
+    // Auth is enforced by Supabase (verify_jwt=true). Defense in depth:
+    const auth = req.headers.get("Authorization") || "";
+    if (!/^Bearer\s+/i.test(auth)) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const { imageBase64 } = await req.json();
-    if (!imageBase64) throw new Error("imageBase64 required");
+    if (!imageBase64 || typeof imageBase64 !== "string") throw new Error("imageBase64 required");
+    // Cap payload to ~2MB of base64 to prevent abuse
+    if (imageBase64.length > 2_800_000) {
+      return new Response(JSON.stringify({ error: "Image too large (max ~2MB)" }), {
+        status: 413,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not set");

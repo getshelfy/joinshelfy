@@ -76,14 +76,18 @@ export const Route = createFileRoute('/api/public/expiry-reminders')({
           return Response.json({ error: 'Server configuration error' }, { status: 500 })
         }
 
-        // Auth: require either the service role key OR the cron secret
+        // Auth: require the cron secret. Constant-time compare to defeat
+        // timing attacks. Never accept the service role key over the wire.
         const auth = request.headers.get('Authorization') || ''
         const provided = auth.replace(/^Bearer\s+/i, '').trim()
         const apikey = request.headers.get('apikey') || ''
-        const ok =
-          (cronSecret && (provided === cronSecret || apikey === cronSecret)) ||
-          provided === serviceKey ||
-          apikey === serviceKey
+        const safeEqual = (a: string, b: string) => {
+          if (!a || !b || a.length !== b.length) return false
+          let mismatch = 0
+          for (let i = 0; i < a.length; i++) mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i)
+          return mismatch === 0
+        }
+        const ok = !!cronSecret && (safeEqual(provided, cronSecret) || safeEqual(apikey, cronSecret))
         if (!ok) {
           return Response.json({ error: 'Unauthorized' }, { status: 401 })
         }
