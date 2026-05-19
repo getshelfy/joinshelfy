@@ -415,29 +415,56 @@ function BarcodeScanner({
       return new BinaryBitmap(new HybridBinarizer(source as any));
     }
 
-    function tryDecode(bitmap: BinaryBitmap): string | null {
+    function tryDecode(bitmap: BinaryBitmap): { text: string; format: BarcodeFormat } | null {
       try {
         const r = reader.decode(bitmap);
-        return r.getText();
-      } catch (e) {
-        if (!(e instanceof NotFoundException)) {
-          // ignore
-        }
+        const fmt = r.getBarcodeFormat();
+        // Format whitelist — reject anything outside the allowed set
+        if (!ALLOWED_FORMATS.has(fmt)) return null;
+        return { text: r.getText(), format: fmt };
+      } catch {
         return null;
       } finally {
         reader.reset();
       }
     }
 
+    function registerCandidate(code: string): boolean {
+      // Dedup / "confidence" gate: require the same code 3 times within 2s.
+      // This filters out noisy single-frame false positives (numbers on
+      // screens, packaging text, etc.) — ZXing 1D decoders don't expose a
+      // numeric confidence, so multi-frame agreement is our proxy for the
+      // 85%+ confidence threshold.
+      const now = Date.now();
+      const recent = recentScansRef.current.filter((s) => now - s.t < 2000);
+      recent.push({ code, t: now });
+      recentScansRef.current = recent;
+      const matching = recent.filter((s) => s.code === code).length;
+      return matching >= 3;
+    }
+
     async function handleFound(code: string) {
       if (detectedRef.current) return;
       detectedRef.current = true;
+      setLooking(true);
+      const lookup = await lookupBarcode(code);
+      const isNumeric = /^\d+$/.test(code);
+      const lengthOk = !isNumeric || (code.length >= 8 && code.length <= 14);
+
+      if (lookup.status === "notFound" && !lengthOk) {
+        // Invalid-looking numeric barcode that OFF doesn't recognise — reject.
+        toast.error("Barcode not recognised — try again or enter manually");
+        recentScansRef.current = [];
+        detectedRef.current = false;
+        setLooking(false);
+        return;
+      }
+
+      // Confirmed scan — give physical feedback.
       vibrate();
       beep();
-      setLooking(true);
-      const product = await lookupBarcode(code);
-      if (product && product.name) {
-        onProduct(product);
+      if (lookup.status === "found") {
+        onProduct(lookup.product);
       } else {
         onSkipManual();
       }
@@ -450,7 +477,6 @@ function BarcodeScanner({
         const vw = video.videoWidth;
         const vh = video.videoHeight;
         if (vw && vh) {
-          // Downscale a bit for perf
           const maxDim = 720;
           const scale = Math.min(1, maxDim / Math.max(vw, vh));
           const w = Math.round(vw * scale);
@@ -460,23 +486,31 @@ function BarcodeScanner({
           ctx.drawImage(video, 0, 0, w, h);
           const data = ctx.getImageData(0, 0, w, h);
 
-          let code = tryDecode(imageDataToBitmap(data));
+          // Try original + 90° + 180° + 270° rotations so users can scan
+          // sideways or upside down.
+          let result = tryDecode(imageDataToBitmap(data));
 
-          if (!code) {
-            // Rotate 90° to support vertical barcodes
-            rotCanvas.width = h;
-            rotCanvas.height = w;
+          const rotateAndDecode = (angle: number) => {
+            const swap = angle === 90 || angle === 270;
+            const rw = swap ? h : w;
+            const rh = swap ? w : h;
+            rotCanvas.width = rw;
+            rotCanvas.height = rh;
             rotCtx.save();
-            rotCtx.translate(h / 2, w / 2);
-            rotCtx.rotate(Math.PI / 2);
+            rotCtx.translate(rw / 2, rh / 2);
+            rotCtx.rotate((angle * Math.PI) / 180);
             rotCtx.drawImage(canvas, -w / 2, -h / 2);
             rotCtx.restore();
-            const rotData = rotCtx.getImageData(0, 0, h, w);
-            code = tryDecode(imageDataToBitmap(rotData));
-          }
+            const rd = rotCtx.getImageData(0, 0, rw, rh);
+            return tryDecode(imageDataToBitmap(rd));
+          };
 
-          if (code) {
-            handleFound(code);
+          if (!result) result = rotateAndDecode(90);
+          if (!result) result = rotateAndDecode(180);
+          if (!result) result = rotateAndDecode(270);
+
+          if (result && registerCandidate(result.text)) {
+            handleFound(result.text);
             return;
           }
         }
