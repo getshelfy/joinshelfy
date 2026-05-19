@@ -157,6 +157,8 @@ function RecipesPage() {
 
   useEffect(() => {
     tapLight();
+    setGuest(isGuest());
+    reloadSaved();
     (async () => {
       const src = await loadPantry();
       const urgent = src.ex.filter((i) => i.expiry_date && daysUntil(i.expiry_date) <= 2);
