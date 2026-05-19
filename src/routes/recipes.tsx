@@ -50,7 +50,7 @@ type Recipe = {
   steps: string[];
 };
 
-type Tab = "kitchen" | "use-first";
+type Tab = "kitchen" | "use-first" | "saved";
 
 function RecipesPage() {
   const [expiring, setExpiring] = useState<RecipeIngredient[]>([]);
@@ -59,8 +59,10 @@ function RecipesPage() {
 
   const [kitchenRecipes, setKitchenRecipes] = useState<Recipe[]>([]);
   const [urgentRecipes, setUrgentRecipes] = useState<Recipe[]>([]);
+  const [savedRecipes, setSavedRecipes] = useState<SavedRecipe[]>([]);
   const [kitchenLoading, setKitchenLoading] = useState(true);
   const [urgentLoading, setUrgentLoading] = useState(false);
+  const [guest, setGuest] = useState(false);
 
   const urgentNames = useMemo(() => {
     const set = new Set<string>();
@@ -72,11 +74,32 @@ function RecipesPage() {
   }, [expiring]);
 
   const hasUrgent = urgentNames.size > 0;
+  const hasSaved = savedRecipes.length > 0;
   const [tab, setTab] = useState<Tab>("kitchen");
 
   useEffect(() => {
     if (!hasUrgent && tab === "use-first") setTab("kitchen");
-  }, [hasUrgent, tab]);
+    if (!hasSaved && tab === "saved") setTab("kitchen");
+  }, [hasUrgent, hasSaved, tab]);
+
+  const reloadSaved = async () => {
+    try {
+      setSavedRecipes(await listSavedRecipes());
+    } catch {
+      setSavedRecipes([]);
+    }
+  };
+
+  const savedKeys = useMemo(() => new Set(savedRecipes.map((r) => recipeKey(r))), [savedRecipes]);
+
+  const onToggleSaved = async (r: Recipe, currentlySaved: boolean) => {
+    if (currentlySaved) {
+      await unsaveRecipe(r);
+    } else {
+      await saveRecipe(r);
+    }
+    await reloadSaved();
+  };
 
   const loadPantry = async () => {
     const { expiring: ex, staples: stps } = await listItemsForRecipes(12);
