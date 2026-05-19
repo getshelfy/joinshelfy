@@ -290,17 +290,19 @@ function looksLikeSlogan(s: string): boolean {
   return false;
 }
 
-async function lookupBarcode(code: string): Promise<FoundProduct | null> {
+type LookupResult =
+  | { status: "found"; product: FoundProduct }
+  | { status: "notFound" }
+  | { status: "error" };
+
+async function lookupBarcode(code: string): Promise<LookupResult> {
   try {
     const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
     const data = await res.json();
-    if (data.status !== 1) return null;
+    if (data.status !== 1) return { status: "notFound" };
     const p = data.product;
     const brand = (p.brands || "").split(",")[0]?.trim() || "";
 
-    // Prefer fields most likely to contain the actual product name.
-    // Note: do NOT use generic_name first — it can be too generic
-    // (e.g. "milk" when the product is actually chicken broth in a milk-style carton).
     const candidates: string[] = [
       p.abbreviated_product_name,
       p.product_name_en,
@@ -311,8 +313,6 @@ async function lookupBarcode(code: string): Promise<FoundProduct | null> {
     let name = candidates.find((c) => !looksLikeSlogan(c)) || candidates[0] || "";
     name = name.trim();
 
-    // If we couldn't find anything decent, try generic_name as a fallback
-    // — but only if it doesn't look like a slogan.
     if (!name) {
       const generic = [p.generic_name_en, p.generic_name].find(
         (s) => typeof s === "string" && s.trim().length > 1 && !looksLikeSlogan(s),
@@ -320,20 +320,23 @@ async function lookupBarcode(code: string): Promise<FoundProduct | null> {
       if (generic) name = generic.trim();
     }
 
-    // Prepend brand for clarity.
     if (brand && name && !name.toLowerCase().includes(brand.toLowerCase())) {
       name = `${brand} ${name}`;
     }
     if (!name && brand) name = brand;
-    if (!name) return null;
+    if (!name) return { status: "notFound" };
 
     return {
-      name,
-      brand,
-      category: guessCategory(name, { categories: p.categories || "" }),
+      status: "found",
+      product: {
+        name,
+        brand,
+        category: guessCategory(name, { categories: p.categories || "" }),
+      },
     };
-  } catch {}
-  return null;
+  } catch {
+    return { status: "error" };
+  }
 }
 
 function BarcodeScanner({
