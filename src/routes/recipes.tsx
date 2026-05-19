@@ -15,9 +15,21 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Sparkles, Clock, ChefHat, Loader2, RefreshCw, Flame, Check, PartyPopper } from "lucide-react";
+import { Sparkles, Clock, ChefHat, Loader2, RefreshCw, Flame, Check, PartyPopper, Bookmark, BookmarkCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { tap, tapLight, tapSelect, tapSuccess } from "@/lib/haptics";
+import { listSavedRecipes, saveRecipe, unsaveRecipe, recipeKey, type SavedRecipe } from "@/lib/saved-recipes";
+import { isGuest } from "@/lib/guest";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/recipes")({
   component: () => (
@@ -38,7 +50,7 @@ type Recipe = {
   steps: string[];
 };
 
-type Tab = "kitchen" | "use-first";
+type Tab = "kitchen" | "use-first" | "saved";
 
 function RecipesPage() {
   const [expiring, setExpiring] = useState<RecipeIngredient[]>([]);
@@ -47,8 +59,10 @@ function RecipesPage() {
 
   const [kitchenRecipes, setKitchenRecipes] = useState<Recipe[]>([]);
   const [urgentRecipes, setUrgentRecipes] = useState<Recipe[]>([]);
+  const [savedRecipes, setSavedRecipes] = useState<SavedRecipe[]>([]);
   const [kitchenLoading, setKitchenLoading] = useState(true);
   const [urgentLoading, setUrgentLoading] = useState(false);
+  const [guest, setGuest] = useState(false);
 
   const urgentNames = useMemo(() => {
     const set = new Set<string>();
@@ -60,11 +74,32 @@ function RecipesPage() {
   }, [expiring]);
 
   const hasUrgent = urgentNames.size > 0;
+  const hasSaved = savedRecipes.length > 0;
   const [tab, setTab] = useState<Tab>("kitchen");
 
   useEffect(() => {
     if (!hasUrgent && tab === "use-first") setTab("kitchen");
-  }, [hasUrgent, tab]);
+    if (!hasSaved && tab === "saved") setTab("kitchen");
+  }, [hasUrgent, hasSaved, tab]);
+
+  const reloadSaved = async () => {
+    try {
+      setSavedRecipes(await listSavedRecipes());
+    } catch {
+      setSavedRecipes([]);
+    }
+  };
+
+  const savedKeys = useMemo(() => new Set(savedRecipes.map((r) => recipeKey(r))), [savedRecipes]);
+
+  const onToggleSaved = async (r: Recipe, currentlySaved: boolean) => {
+    if (currentlySaved) {
+      await unsaveRecipe(r);
+    } else {
+      await saveRecipe(r);
+    }
+    await reloadSaved();
+  };
 
   const loadPantry = async () => {
     const { expiring: ex, staples: stps } = await listItemsForRecipes(12);
@@ -122,6 +157,8 @@ function RecipesPage() {
 
   useEffect(() => {
     tapLight();
+    setGuest(isGuest());
+    reloadSaved();
     (async () => {
       const src = await loadPantry();
       const urgent = src.ex.filter((i) => i.expiry_date && daysUntil(i.expiry_date) <= 2);
@@ -156,7 +193,11 @@ function RecipesPage() {
           role="tablist"
           className={cn(
             "grid gap-2 rounded-2xl bg-card-soft p-1",
-            hasUrgent ? "grid-cols-2" : "grid-cols-1",
+            hasUrgent && hasSaved
+              ? "grid-cols-3"
+              : hasUrgent || hasSaved
+                ? "grid-cols-2"
+                : "grid-cols-1",
           )}
         >
           <TabButton
@@ -179,6 +220,17 @@ function RecipesPage() {
               }}
             />
           )}
+          {hasSaved && (
+            <TabButton
+              active={tab === "saved"}
+              label={`Saved (${savedRecipes.length})`}
+              icon={<Bookmark className="h-4 w-4" />}
+              onClick={() => {
+                tap();
+                setTab("saved");
+              }}
+            />
+          )}
         </div>
 
         {tab === "kitchen" && (
@@ -195,6 +247,8 @@ function RecipesPage() {
             onRefresh={() => onRefresh("kitchen")}
             staples={staples}
             emptyHint="Add some items to your pantry first."
+            savedKeys={savedKeys}
+            onToggleSaved={onToggleSaved}
           />
         )}
 
@@ -211,6 +265,20 @@ function RecipesPage() {
             pantry={allPantry}
             onItemsConsumed={onItemsConsumed}
             onRefresh={() => onRefresh("use-first")}
+            savedKeys={savedKeys}
+            onToggleSaved={onToggleSaved}
+          />
+        )}
+
+        {tab === "saved" && (
+          <SavedSection
+            recipes={savedRecipes}
+            urgentNames={urgentNames}
+            pantry={allPantry}
+            onItemsConsumed={onItemsConsumed}
+            savedKeys={savedKeys}
+            onToggleSaved={onToggleSaved}
+            guest={guest}
           />
         )}
       </div>
@@ -265,6 +333,8 @@ function Section({
   emptyHint,
   pantry,
   onItemsConsumed,
+  savedKeys,
+  onToggleSaved,
 }: {
   title: string;
   subtitle: string;
@@ -278,6 +348,8 @@ function Section({
   emptyHint?: string;
   pantry: RecipeIngredient[];
   onItemsConsumed: () => void | Promise<void>;
+  savedKeys: Set<string>;
+  onToggleSaved: (r: Recipe, currentlySaved: boolean) => Promise<void>;
 }) {
   return (
     <section className="mt-4 animate-page-in">
@@ -322,7 +394,15 @@ function Section({
             className="animate-tile-in"
             style={{ animationDelay: `${Math.min(i, 6) * 60}ms` }}
           >
-            <RecipeCard r={r} urgentNames={urgentNames} tone={tone} pantry={pantry} onItemsConsumed={onItemsConsumed} />
+            <RecipeCard
+              r={r}
+              urgentNames={urgentNames}
+              tone={tone}
+              pantry={pantry}
+              onItemsConsumed={onItemsConsumed}
+              isSaved={savedKeys.has(recipeKey(r))}
+              onToggleSaved={onToggleSaved}
+            />
           </div>
         ))}
       </div>
@@ -369,6 +449,69 @@ function Section({
   );
 }
 
+function SavedSection({
+  recipes,
+  urgentNames,
+  pantry,
+  onItemsConsumed,
+  savedKeys,
+  onToggleSaved,
+  guest,
+}: {
+  recipes: SavedRecipe[];
+  urgentNames: Set<string>;
+  pantry: RecipeIngredient[];
+  onItemsConsumed: () => void | Promise<void>;
+  savedKeys: Set<string>;
+  onToggleSaved: (r: Recipe, currentlySaved: boolean) => Promise<void>;
+  guest: boolean;
+}) {
+  return (
+    <section className="mt-4 animate-page-in">
+      <div className="rounded-2xl border p-4 bg-card-soft/40">
+        <h2 className="font-serif text-lg font-semibold">Saved recipes</h2>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Your bookmarked ideas — pantry matches update as your kitchen changes.
+        </p>
+      </div>
+
+      {guest && (
+        <p className="mt-3 px-1 text-xs text-muted-foreground text-center">
+          Create an account to keep your saved recipes forever.
+        </p>
+      )}
+
+      {recipes.length === 0 ? (
+        <div className="mt-3 rounded-2xl border bg-card p-6 text-center">
+          <Bookmark className="mx-auto h-8 w-8 text-muted-foreground" />
+          <p className="mt-2 text-sm text-muted-foreground">
+            No saved recipes yet. Tap the bookmark icon on a recipe to save it.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-3 space-y-3">
+          {recipes.map((r, i) => (
+            <div
+              key={recipeKey(r)}
+              className="animate-tile-in"
+              style={{ animationDelay: `${Math.min(i, 6) * 60}ms` }}
+            >
+              <RecipeCard
+                r={r as Recipe}
+                urgentNames={urgentNames}
+                pantry={pantry}
+                onItemsConsumed={onItemsConsumed}
+                isSaved={savedKeys.has(recipeKey(r))}
+                onToggleSaved={onToggleSaved}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function pickEmoji(r: Recipe): string {
   if (r.emoji && r.emoji !== "🍽️" && r.emoji !== "🍽") return r.emoji;
   const n = r.name.toLowerCase();
@@ -408,15 +551,21 @@ function RecipeCard({
   tone,
   pantry,
   onItemsConsumed,
+  isSaved,
+  onToggleSaved,
 }: {
   r: Recipe;
   urgentNames: Set<string>;
   tone?: "urgent";
   pantry: RecipeIngredient[];
   onItemsConsumed: () => void | Promise<void>;
+  isSaved: boolean;
+  onToggleSaved: (r: Recipe, currentlySaved: boolean) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [madeOpen, setMadeOpen] = useState(false);
+  const [confirmUnsave, setConfirmUnsave] = useState(false);
+  const [savingToggle, setSavingToggle] = useState(false);
   const isUrgent = (name: string) => urgentNames.has(name.toLowerCase());
 
   // Match recipe usesItems to actual pantry rows (case-insensitive substring)
@@ -438,14 +587,58 @@ function RecipeCard({
     return matches;
   }, [r.usesItems, pantry]);
 
+  const handleBookmark = async () => {
+    tapSelect();
+    if (isSaved) {
+      setConfirmUnsave(true);
+      return;
+    }
+    setSavingToggle(true);
+    try {
+      await onToggleSaved(r, false);
+      tapSuccess();
+    } finally {
+      setSavingToggle(false);
+    }
+  };
+
+  const doUnsave = async () => {
+    setSavingToggle(true);
+    try {
+      await onToggleSaved(r, true);
+    } finally {
+      setSavingToggle(false);
+      setConfirmUnsave(false);
+    }
+  };
+
   return (
     <article
       className={cn(
-        "rounded-2xl border bg-card p-4 shadow-sm transition-colors",
+        "relative rounded-2xl border bg-card p-4 shadow-sm transition-colors",
         tone === "urgent" && "border-urgent-foreground/20",
       )}
     >
-      <div className="flex items-start gap-3">
+      <button
+        type="button"
+        aria-label={isSaved ? "Remove from saved" : "Save recipe"}
+        onClick={handleBookmark}
+        disabled={savingToggle}
+        className={cn(
+          "tactile absolute top-3 right-3 flex h-9 w-9 items-center justify-center rounded-full",
+          isSaved
+            ? "bg-primary/10 text-primary"
+            : "bg-card-soft text-muted-foreground hover:text-foreground",
+        )}
+        style={isSaved ? { color: "#2D9B6F" } : undefined}
+      >
+        {isSaved ? (
+          <BookmarkCheck className="h-5 w-5" fill="#2D9B6F" strokeWidth={2} />
+        ) : (
+          <Bookmark className="h-5 w-5" />
+        )}
+      </button>
+      <div className="flex items-start gap-3 pr-10">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-card-soft text-2xl">
           {pickEmoji(r)}
         </div>
@@ -454,6 +647,20 @@ function RecipeCard({
           <p className="mt-1 text-sm text-muted-foreground">{r.description}</p>
         </div>
       </div>
+      <AlertDialog open={confirmUnsave} onOpenChange={setConfirmUnsave}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove from saved?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{r.name}" will be removed from your saved recipes. You can save it again any time.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep saved</AlertDialogCancel>
+            <AlertDialogAction onClick={doUnsave}>Remove</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-xs">
         <span className="inline-flex items-center gap-1 rounded-full bg-card-soft px-2 py-0.5">
           <Clock className="h-3 w-3" />
