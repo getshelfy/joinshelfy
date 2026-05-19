@@ -60,7 +60,7 @@ export async function saveRecipe(r: SavedRecipe): Promise<void> {
   await supabase
     .from("saved_recipes")
     .upsert(
-      { user_id: u.user.id, recipe_key: key, recipe: r as unknown as Record<string, unknown> },
+      [{ user_id: u.user.id, recipe_key: key, recipe: r as unknown as Record<string, unknown> }],
       { onConflict: "user_id,recipe_key" },
     );
 }
