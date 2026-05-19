@@ -43,7 +43,7 @@ export async function listSavedRecipes(): Promise<SavedRecipe[]> {
     .select("recipe, created_at")
     .order("created_at", { ascending: false });
   if (error) return [];
-  return ((data as Array<{ recipe: SavedRecipe }>) || []).map((r) => r.recipe);
+  return ((data as unknown as Array<{ recipe: SavedRecipe }>) || []).map((r) => r.recipe);
 }
 
 export async function saveRecipe(r: SavedRecipe): Promise<void> {
