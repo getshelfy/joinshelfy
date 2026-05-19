@@ -193,7 +193,11 @@ function RecipesPage() {
           role="tablist"
           className={cn(
             "grid gap-2 rounded-2xl bg-card-soft p-1",
-            hasUrgent ? "grid-cols-2" : "grid-cols-1",
+            hasUrgent && hasSaved
+              ? "grid-cols-3"
+              : hasUrgent || hasSaved
+                ? "grid-cols-2"
+                : "grid-cols-1",
           )}
         >
           <TabButton
@@ -216,6 +220,17 @@ function RecipesPage() {
               }}
             />
           )}
+          {hasSaved && (
+            <TabButton
+              active={tab === "saved"}
+              label={`Saved (${savedRecipes.length})`}
+              icon={<Bookmark className="h-4 w-4" />}
+              onClick={() => {
+                tap();
+                setTab("saved");
+              }}
+            />
+          )}
         </div>
 
         {tab === "kitchen" && (
@@ -232,6 +247,8 @@ function RecipesPage() {
             onRefresh={() => onRefresh("kitchen")}
             staples={staples}
             emptyHint="Add some items to your pantry first."
+            savedKeys={savedKeys}
+            onToggleSaved={onToggleSaved}
           />
         )}
 
@@ -248,6 +265,20 @@ function RecipesPage() {
             pantry={allPantry}
             onItemsConsumed={onItemsConsumed}
             onRefresh={() => onRefresh("use-first")}
+            savedKeys={savedKeys}
+            onToggleSaved={onToggleSaved}
+          />
+        )}
+
+        {tab === "saved" && (
+          <SavedSection
+            recipes={savedRecipes}
+            urgentNames={urgentNames}
+            pantry={allPantry}
+            onItemsConsumed={onItemsConsumed}
+            savedKeys={savedKeys}
+            onToggleSaved={onToggleSaved}
+            guest={guest}
           />
         )}
       </div>
