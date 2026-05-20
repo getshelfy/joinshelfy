@@ -810,7 +810,7 @@ function MadeItDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[85%] max-w-[340px] rounded-[16px] border-0 bg-[#FAF8F3] p-5 shadow-xl shadow-black/10 sm:p-6">
         {phase === "select" && (
           <>
             <DialogHeader>
@@ -845,7 +845,7 @@ function MadeItDialog({
               </Button>
               <Button
                 onClick={confirm}
-                className="tactile bg-fresh-foreground text-fresh hover:bg-fresh-foreground/90"
+                className="tactile bg-[#2D9B6F] text-white hover:bg-[#2D9B6F]/90"
               >
                 <Check className="mr-2 h-4 w-4" />
                 Confirm
@@ -888,7 +888,7 @@ function MadeItDialog({
             <DialogFooter>
               <Button
                 onClick={() => onOpenChange(false)}
-                className="tactile w-full bg-fresh-foreground text-fresh hover:bg-fresh-foreground/90"
+                className="tactile w-full bg-[#2D9B6F] text-white hover:bg-[#2D9B6F]/90"
               >
                 Done
               </Button>
