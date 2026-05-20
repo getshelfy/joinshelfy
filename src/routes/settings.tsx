@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, LogOut, Trash2, FileText, Shield } from "lucide-react";
+import { ArrowLeft, LogOut, Trash2, FileText, Shield, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { endGuest, isGuest } from "@/lib/guest";
@@ -83,6 +83,19 @@ function SettingsPage() {
       </header>
 
       <main className="flex-1 px-5 space-y-6">
+        <section className="rounded-2xl border bg-card p-5 shadow-sm">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Support
+          </h2>
+          <a
+            href="mailto:get.shelfyy@gmail.com?subject=Shelfy%20Feedback"
+            className="mt-3 flex items-center gap-3 rounded-lg p-2 text-sm hover:bg-muted"
+          >
+            <Mail className="h-4 w-4 text-muted-foreground" />
+            Send feedback
+          </a>
+        </section>
+
         <section className="rounded-2xl border bg-card p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
             Account
