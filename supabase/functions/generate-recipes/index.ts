@@ -4,6 +4,46 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const DAILY_LIMIT = 10;
+const FUNCTION_NAME = "generate-recipes";
+
+function getIdentifier(req: Request): string {
+  const auth = req.headers.get("Authorization") || "";
+  const token = auth.replace(/^Bearer\s+/i, "");
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1] || ""));
+    if (payload?.sub && payload?.role !== "anon") return `user:${payload.sub}`;
+  } catch {}
+  const fwd = req.headers.get("x-forwarded-for") || "";
+  const ip = fwd.split(",")[0].trim() || req.headers.get("cf-connecting-ip") || "unknown";
+  return `ip:${ip}`;
+}
+
+async function checkRateLimit(identifier: string): Promise<{ allowed: boolean; count: number }> {
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/increment_api_usage`, {
+    method: "POST",
+    headers: {
+      apikey: SERVICE_KEY,
+      Authorization: `Bearer ${SERVICE_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      p_identifier: identifier,
+      p_function_name: FUNCTION_NAME,
+      p_limit: DAILY_LIMIT,
+    }),
+  });
+  if (!res.ok) {
+    console.error("rate limit rpc failed", res.status, await res.text());
+    return { allowed: true, count: 0 }; // fail open
+  }
+  const rows = await res.json();
+  const row = Array.isArray(rows) ? rows[0] : rows;
+  return { allowed: !!row?.allowed, count: row?.current_count ?? 0 };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
@@ -15,6 +55,16 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const identifier = getIdentifier(req);
+    const limit = await checkRateLimit(identifier);
+    if (!limit.allowed) {
+      return new Response(
+        JSON.stringify({ error: "Daily limit reached — come back tomorrow." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const { items, staples } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not set");

@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_usage: {
+        Row: {
+          call_count: number
+          created_at: string
+          function_name: string
+          id: string
+          identifier: string
+          updated_at: string
+          usage_date: string
+        }
+        Insert: {
+          call_count?: number
+          created_at?: string
+          function_name: string
+          id?: string
+          identifier: string
+          updated_at?: string
+          usage_date?: string
+        }
+        Update: {
+          call_count?: number
+          created_at?: string
+          function_name?: string
+          id?: string
+          identifier?: string
+          updated_at?: string
+          usage_date?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -260,6 +290,13 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      increment_api_usage: {
+        Args: { p_function_name: string; p_identifier: string; p_limit: number }
+        Returns: {
+          allowed: boolean
+          current_count: number
+        }[]
       }
       move_to_dlq: {
         Args: {
