@@ -27,7 +27,7 @@ function PantryView() {
   const { markStatus, setOpenTarget, dialog } = usePantryActions(setItems, setStaples);
   const [query, setQuery] = useState("");
 
-  const { urgent, warn, fresh } = useMemo(() => {
+  const { expired, urgent, warn, fresh } = useMemo(() => {
     const q = query.trim().toLowerCase();
     const filtered = q ? items.filter((i) => i.name.toLowerCase().includes(q)) : items;
     const sorted = [...filtered].sort((a, b) => {
@@ -35,16 +35,18 @@ function PantryView() {
       const db = b.expiry_date ? daysUntil(b.expiry_date) : 999;
       return da - db;
     });
+    const e: Item[] = [];
     const u: Item[] = [];
     const w: Item[] = [];
     const f: Item[] = [];
     for (const it of sorted) {
       const d = it.expiry_date ? daysUntil(it.expiry_date) : 999;
-      if (d <= 2) u.push(it);
+      if (d < 0) e.push(it);
+      else if (d <= 2) u.push(it);
       else if (d <= 5) w.push(it);
       else f.push(it);
     }
-    return { urgent: u, warn: w, fresh: f };
+    return { expired: e, urgent: u, warn: w, fresh: f };
   }, [items, query]);
 
   return (
