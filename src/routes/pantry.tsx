@@ -5,7 +5,7 @@ import { Header } from "@/components/header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Plus, Sprout } from "lucide-react";
-import { daysUntil } from "@/lib/food";
+import { categoryEmoji, daysUntil } from "@/lib/food";
 import {
   ItemRow,
   StaplesList,
