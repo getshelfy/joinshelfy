@@ -110,7 +110,8 @@ function PantryView() {
             onOpen={setOpenTarget}
             onStatus={markStatus}
           />
-          {urgent.length === 0 && warn.length === 0 && fresh.length === 0 && (
+          <ExpiredSection items={expired} onStatus={markStatus} />
+          {expired.length === 0 && urgent.length === 0 && warn.length === 0 && fresh.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">
               No items match "{query}".
             </p>
