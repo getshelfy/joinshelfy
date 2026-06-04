@@ -5,7 +5,7 @@ import { Header } from "@/components/header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Plus, Sprout } from "lucide-react";
-import { daysUntil } from "@/lib/food";
+import { categoryEmoji, daysUntil } from "@/lib/food";
 import {
   ItemRow,
   StaplesList,
@@ -27,7 +27,7 @@ function PantryView() {
   const { markStatus, setOpenTarget, dialog } = usePantryActions(setItems, setStaples);
   const [query, setQuery] = useState("");
 
-  const { urgent, warn, fresh } = useMemo(() => {
+  const { expired, urgent, warn, fresh } = useMemo(() => {
     const q = query.trim().toLowerCase();
     const filtered = q ? items.filter((i) => i.name.toLowerCase().includes(q)) : items;
     const sorted = [...filtered].sort((a, b) => {
@@ -35,16 +35,18 @@ function PantryView() {
       const db = b.expiry_date ? daysUntil(b.expiry_date) : 999;
       return da - db;
     });
+    const e: Item[] = [];
     const u: Item[] = [];
     const w: Item[] = [];
     const f: Item[] = [];
     for (const it of sorted) {
       const d = it.expiry_date ? daysUntil(it.expiry_date) : 999;
-      if (d <= 2) u.push(it);
+      if (d < 0) e.push(it);
+      else if (d <= 2) u.push(it);
       else if (d <= 5) w.push(it);
       else f.push(it);
     }
-    return { urgent: u, warn: w, fresh: f };
+    return { expired: e, urgent: u, warn: w, fresh: f };
   }, [items, query]);
 
   return (
@@ -108,7 +110,8 @@ function PantryView() {
             onOpen={setOpenTarget}
             onStatus={markStatus}
           />
-          {urgent.length === 0 && warn.length === 0 && fresh.length === 0 && (
+          <ExpiredSection items={expired} onStatus={markStatus} />
+          {expired.length === 0 && urgent.length === 0 && warn.length === 0 && fresh.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">
               No items match "{query}".
             </p>
@@ -159,6 +162,69 @@ function UrgencySection({
       <ul className="mt-2 space-y-2.5">
         {items.map((item) => (
           <ItemRow key={item.id} item={item} onOpen={onOpen} onStatus={onStatus} showLocation />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function ExpiredSection({
+  items,
+  onStatus,
+}: {
+  items: Item[];
+  onStatus: (id: string, status: "used" | "wasted") => void;
+}) {
+  if (!items.length) return null;
+  return (
+    <section className="mt-2">
+      <div className="flex items-center gap-2 px-1">
+        <span className="h-2 w-2 rounded-full bg-muted-foreground/60" aria-hidden />
+        <h2 className="font-serif text-lg">
+          Expired
+          <span className="ml-1 text-sm font-sans text-muted-foreground">
+            · {items.length} {items.length === 1 ? "item" : "items"}
+          </span>
+        </h2>
+      </div>
+      <p className="mt-1 px-1 text-xs text-muted-foreground">
+        These items have passed their date — use your judgement.
+      </p>
+      <ul className="mt-2 space-y-2.5">
+        {items.map((item) => (
+          <li
+            key={item.id}
+            className="rounded-2xl border bg-card-soft p-3.5 shadow-sm"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-card text-2xl opacity-80">
+                {categoryEmoji(item.category)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate font-medium">{item.name}</h3>
+                <div className="mt-0.5 text-xs text-muted-foreground capitalize">
+                  {item.expiry_date ? `Passed ${Math.abs(daysUntil(item.expiry_date))}d ago` : "Past date"}
+                  {" · "}
+                  {item.location}
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <Button
+                onClick={() => onStatus(item.id, "used")}
+                className="h-9 flex-1 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                Mark as used
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => onStatus(item.id, "wasted")}
+                className="h-9 flex-1 rounded-full border-border bg-card text-foreground hover:bg-muted"
+              >
+                Mark as wasted
+              </Button>
+            </div>
+          </li>
         ))}
       </ul>
     </section>
