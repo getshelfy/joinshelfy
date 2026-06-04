@@ -167,3 +167,66 @@ function UrgencySection({
     </section>
   );
 }
+
+function ExpiredSection({
+  items,
+  onStatus,
+}: {
+  items: Item[];
+  onStatus: (id: string, status: "used" | "wasted") => void;
+}) {
+  if (!items.length) return null;
+  return (
+    <section className="mt-2">
+      <div className="flex items-center gap-2 px-1">
+        <span className="h-2 w-2 rounded-full bg-muted-foreground/60" aria-hidden />
+        <h2 className="font-serif text-lg">
+          Expired
+          <span className="ml-1 text-sm font-sans text-muted-foreground">
+            · {items.length} {items.length === 1 ? "item" : "items"}
+          </span>
+        </h2>
+      </div>
+      <p className="mt-1 px-1 text-xs text-muted-foreground">
+        These items have passed their date — use your judgement.
+      </p>
+      <ul className="mt-2 space-y-2.5">
+        {items.map((item) => (
+          <li
+            key={item.id}
+            className="rounded-2xl border bg-card-soft p-3.5 shadow-sm"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-card text-2xl opacity-80">
+                {categoryEmoji(item.category)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate font-medium">{item.name}</h3>
+                <div className="mt-0.5 text-xs text-muted-foreground capitalize">
+                  {item.expiry_date ? `Passed ${Math.abs(daysUntil(item.expiry_date))}d ago` : "Past date"}
+                  {" · "}
+                  {item.location}
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <Button
+                onClick={() => onStatus(item.id, "used")}
+                className="h-9 flex-1 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                Mark as used
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => onStatus(item.id, "wasted")}
+                className="h-9 flex-1 rounded-full border-border bg-card text-foreground hover:bg-muted"
+              >
+                Mark as wasted
+              </Button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
