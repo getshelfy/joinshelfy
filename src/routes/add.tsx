@@ -234,6 +234,9 @@ function SingleAdd() {
         </div>
         <Switch checked={includeInRecipes} onCheckedChange={setIncludeInRecipes} />
       </div>
+      <p className="text-center text-xs text-muted-foreground">
+        Expiry dates are a guide. Always use your own judgement when deciding whether food is safe to eat.
+      </p>
       <Button onClick={() => save()} className="w-full h-11" disabled={saving}>
         {saving ? "Saving..." : "Add to pantry"}
       </Button>
