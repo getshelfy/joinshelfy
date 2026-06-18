@@ -20,7 +20,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LocationLocationRouteImport } from './routes/location.$location'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
-import { Route as ApiPublicExpiryRemindersRouteImport } from './routes/api/public/expiry-reminders'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -80,12 +79,6 @@ const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   path: '/lovable/email/suppression',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicExpiryRemindersRoute =
-  ApiPublicExpiryRemindersRouteImport.update({
-    id: '/api/public/expiry-reminders',
-    path: '/api/public/expiry-reminders',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const LovableEmailTransactionalSendRoute =
   LovableEmailTransactionalSendRouteImport.update({
     id: '/lovable/email/transactional/send',
@@ -116,7 +109,6 @@ export interface FileRoutesByFullPath {
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/location/$location': typeof LocationLocationRoute
-  '/api/public/expiry-reminders': typeof ApiPublicExpiryRemindersRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -133,7 +125,6 @@ export interface FileRoutesByTo {
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/location/$location': typeof LocationLocationRoute
-  '/api/public/expiry-reminders': typeof ApiPublicExpiryRemindersRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -151,7 +142,6 @@ export interface FileRoutesById {
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/location/$location': typeof LocationLocationRoute
-  '/api/public/expiry-reminders': typeof ApiPublicExpiryRemindersRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -170,7 +160,6 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/email/unsubscribe'
     | '/location/$location'
-    | '/api/public/expiry-reminders'
     | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
@@ -187,7 +176,6 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/email/unsubscribe'
     | '/location/$location'
-    | '/api/public/expiry-reminders'
     | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
@@ -204,7 +192,6 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/email/unsubscribe'
     | '/location/$location'
-    | '/api/public/expiry-reminders'
     | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
@@ -222,7 +209,6 @@ export interface RootRouteChildren {
   UnsubscribeRoute: typeof UnsubscribeRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   LocationLocationRoute: typeof LocationLocationRoute
-  ApiPublicExpiryRemindersRoute: typeof ApiPublicExpiryRemindersRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
@@ -308,13 +294,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailSuppressionRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/expiry-reminders': {
-      id: '/api/public/expiry-reminders'
-      path: '/api/public/expiry-reminders'
-      fullPath: '/api/public/expiry-reminders'
-      preLoaderRoute: typeof ApiPublicExpiryRemindersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/lovable/email/transactional/send': {
       id: '/lovable/email/transactional/send'
       path: '/lovable/email/transactional/send'
@@ -350,7 +329,6 @@ const rootRouteChildren: RootRouteChildren = {
   UnsubscribeRoute: UnsubscribeRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   LocationLocationRoute: LocationLocationRoute,
-  ApiPublicExpiryRemindersRoute: ApiPublicExpiryRemindersRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
