@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { startGuest, isGuest } from "@/lib/guest";
-import { Sprout } from "lucide-react";
+import { Sprout, MailCheck } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -18,6 +18,9 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent">("idle");
+  const [resendError, setResendError] = useState<string | null>(null);
 
   useEffect(() => {
     const isRecentSignout = () => {
@@ -60,10 +63,13 @@ function LoginPage() {
           options: { emailRedirectTo: window.location.origin },
         });
         if (error) throw error;
-        if (data.user) {
+        // With email confirmation enabled, no session is returned until verified.
+        if (data.session) {
           navigate({ to: "/" });
         } else {
-          setError("Check your email to confirm your account before signing in.");
+          setPendingEmail(email);
+          setResendState("idle");
+          setResendError(null);
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -77,10 +83,91 @@ function LoginPage() {
     }
   };
 
+  const handleResend = async () => {
+    if (!pendingEmail) return;
+    setResendState("sending");
+    setResendError(null);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: pendingEmail,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (error) throw error;
+      setResendState("sent");
+    } catch (err: any) {
+      setResendError(err?.message || "Could not resend right now. Please try again.");
+      setResendState("idle");
+    }
+  };
+
   const handleGuest = async () => {
     startGuest();
     navigate({ to: "/" });
   };
+
+  if (pendingEmail) {
+    return (
+      <div className="flex min-h-screen flex-col items-center bg-background px-6 pb-8 pt-6">
+        <div className="w-full max-w-sm">
+          <div className="mb-5 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md">
+              <MailCheck className="h-6 w-6" />
+            </div>
+            <h1 className="font-serif text-3xl font-semibold">Check your email</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              We've sent a verification link to{" "}
+              <span className="font-medium text-foreground">{pendingEmail}</span>.
+              Click it to activate your account.
+            </p>
+          </div>
+
+          <div className="space-y-4 rounded-2xl border bg-card p-6 shadow-sm">
+            <p className="text-sm text-muted-foreground">
+              Once verified, you'll be signed in automatically. You can close this tab and come back via the link in your inbox.
+            </p>
+
+            {resendError && (
+              <div
+                role="alert"
+                className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              >
+                {resendError}
+              </div>
+            )}
+            {resendState === "sent" && (
+              <div className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-foreground">
+                Verification email sent again. Check your inbox (and spam folder).
+              </div>
+            )}
+
+            <Button
+              type="button"
+              onClick={handleResend}
+              disabled={resendState === "sending"}
+              variant="outline"
+              className="h-11 w-full text-base"
+            >
+              {resendState === "sending" ? "Sending…" : "Resend verification email"}
+            </Button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setPendingEmail(null);
+                setMode("signin");
+                setPassword("");
+                setError(null);
+              }}
+              className="block w-full text-center text-sm text-muted-foreground hover:text-foreground"
+            >
+              Use a different email
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-background px-6 pb-8 pt-6">
