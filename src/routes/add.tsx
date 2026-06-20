@@ -395,35 +395,66 @@ function BarcodeScanner({
       BarcodeFormat.CODE_39,
       BarcodeFormat.QR_CODE,
     ]);
+    // TRY_HARDER is on by default — slower but tolerates tilt, blur and
+    // partial occlusion much better. ALSO_INVERTED handles light-on-dark
+    // barcodes (e.g. white bars on dark packaging).
     hints.set(DecodeHintType.TRY_HARDER, true);
+    hints.set(DecodeHintType.ALSO_INVERTED, true);
     const reader = new MultiFormatReader();
     reader.setHints(hints);
 
     let activeStream: MediaStream | null = null;
     let rafId = 0;
     let cancelled = false;
+    let processingClearTimer = 0;
 
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     const rotCanvas = document.createElement("canvas");
     const rotCtx = rotCanvas.getContext("2d");
 
-    function imageDataToBitmap(data: ImageData): BinaryBitmap {
-      const { width, height, data: px } = data;
-      const luminances = new Uint8ClampedArray(width * height);
+    function luminancesFrom(data: ImageData): Uint8ClampedArray {
+      const { data: px } = data;
+      const out = new Uint8ClampedArray(px.length / 4);
       for (let i = 0, j = 0; i < px.length; i += 4, j++) {
-        // Standard luma
-        luminances[j] = (px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114 + 500) / 1000;
+        // Greyscale via standard luma — reduces colour-cast / reflection noise.
+        out[j] = (px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114 + 500) / 1000;
       }
-      const source = new RGBLuminanceSource(luminances as unknown as Uint8ClampedArray, width, height);
-      return new BinaryBitmap(new HybridBinarizer(source as any));
+      return out;
+    }
+
+    function boostContrast(lum: Uint8ClampedArray, factor: number): Uint8ClampedArray {
+      // Stretch contrast around the mean — helps low-contrast / glare-washed
+      // barcodes where bars and spaces are too similar in brightness.
+      let sum = 0;
+      for (let i = 0; i < lum.length; i++) sum += lum[i];
+      const mean = sum / lum.length;
+      const out = new Uint8ClampedArray(lum.length);
+      for (let i = 0; i < lum.length; i++) {
+        const v = (lum[i] - mean) * factor + mean;
+        out[i] = v < 0 ? 0 : v > 255 ? 255 : v;
+      }
+      return out;
+    }
+
+    function bitmapFromLum(
+      lum: Uint8ClampedArray,
+      w: number,
+      h: number,
+      binarizer: "hybrid" | "global",
+    ): BinaryBitmap {
+      const source = new RGBLuminanceSource(lum as unknown as Uint8ClampedArray, w, h);
+      const bin =
+        binarizer === "hybrid"
+          ? new HybridBinarizer(source as any)
+          : new GlobalHistogramBinarizer(source as any);
+      return new BinaryBitmap(bin);
     }
 
     function tryDecode(bitmap: BinaryBitmap): { text: string; format: BarcodeFormat } | null {
       try {
         const r = reader.decode(bitmap);
         const fmt = r.getBarcodeFormat();
-        // Format whitelist — reject anything outside the allowed set
         if (!ALLOWED_FORMATS.has(fmt)) return null;
         return { text: r.getText(), format: fmt };
       } catch {
@@ -433,18 +464,33 @@ function BarcodeScanner({
       }
     }
 
+    function decodePasses(lum: Uint8ClampedArray, w: number, h: number) {
+      // Pass 1: hybrid binarizer (adaptive, best for uneven lighting/glare)
+      let r = tryDecode(bitmapFromLum(lum, w, h, "hybrid"));
+      if (r) return r;
+      // Pass 2: global histogram binarizer (better for clean prints)
+      r = tryDecode(bitmapFromLum(lum, w, h, "global"));
+      if (r) return r;
+      // Pass 3: high-contrast retry — recovers low-contrast / glare-affected barcodes
+      const boosted = boostContrast(lum, 1.8);
+      r = tryDecode(bitmapFromLum(boosted, w, h, "hybrid"));
+      if (r) return r;
+      // Pass 4: extra-aggressive contrast
+      const boostedMore = boostContrast(lum, 2.6);
+      return tryDecode(bitmapFromLum(boostedMore, w, h, "hybrid"));
+    }
+
     function registerCandidate(code: string): boolean {
-      // Dedup / "confidence" gate: require the same code 3 times within 2s.
-      // This filters out noisy single-frame false positives (numbers on
-      // screens, packaging text, etc.) — ZXing 1D decoders don't expose a
-      // numeric confidence, so multi-frame agreement is our proxy for the
-      // 85%+ confidence threshold.
+      // Multi-frame agreement gate. Two matches within 1.2s = confirmed.
+      // Lower than before (was 3) because TRY_HARDER + contrast passes give
+      // us higher per-frame confidence, and motion makes 3 same-frame hits
+      // unreliable for moving packaging.
       const now = Date.now();
-      const recent = recentScansRef.current.filter((s) => now - s.t < 2000);
+      const recent = recentScansRef.current.filter((s) => now - s.t < 1200);
       recent.push({ code, t: now });
       recentScansRef.current = recent;
       const matching = recent.filter((s) => s.code === code).length;
-      return matching >= 3;
+      return matching >= 2;
     }
 
     async function handleFound(code: string) {
@@ -456,7 +502,6 @@ function BarcodeScanner({
       const lengthOk = !isNumeric || (code.length >= 8 && code.length <= 14);
 
       if (lookup.status === "notFound" && !lengthOk) {
-        // Invalid-looking numeric barcode that OFF doesn't recognise — reject.
         toast.error("Barcode not recognised — try again or enter manually");
         recentScansRef.current = [];
         detectedRef.current = false;
@@ -464,7 +509,6 @@ function BarcodeScanner({
         return;
       }
 
-      // Confirmed scan — give physical feedback.
       vibrate();
       beep();
       if (lookup.status === "found") {
@@ -472,6 +516,12 @@ function BarcodeScanner({
       } else {
         onSkipManual();
       }
+    }
+
+    function flashProcessing() {
+      setProcessing(true);
+      clearTimeout(processingClearTimer);
+      processingClearTimer = window.setTimeout(() => setProcessing(false), 140) as unknown as number;
     }
 
     function scanLoop() {
@@ -490,9 +540,10 @@ function BarcodeScanner({
           ctx.drawImage(video, 0, 0, w, h);
           const data = ctx.getImageData(0, 0, w, h);
 
-          // Try original + 90° + 180° + 270° rotations so users can scan
-          // sideways or upside down.
-          let result = tryDecode(imageDataToBitmap(data));
+          flashProcessing();
+
+          const lum = luminancesFrom(data);
+          let result = decodePasses(lum, w, h);
 
           const rotateAndDecode = (angle: number) => {
             const swap = angle === 90 || angle === 270;
@@ -506,10 +557,13 @@ function BarcodeScanner({
             rotCtx.drawImage(canvas, -w / 2, -h / 2);
             rotCtx.restore();
             const rd = rotCtx.getImageData(0, 0, rw, rh);
-            return tryDecode(imageDataToBitmap(rd));
+            return decodePasses(luminancesFrom(rd), rw, rh);
           };
 
           if (!result) result = rotateAndDecode(90);
+          // Small-angle retries handle naturally-tilted packaging.
+          if (!result) result = rotateAndDecode(15);
+          if (!result) result = rotateAndDecode(-15);
           if (!result) result = rotateAndDecode(180);
           if (!result) result = rotateAndDecode(270);
 
@@ -519,7 +573,8 @@ function BarcodeScanner({
           }
         }
       }
-      rafId = window.setTimeout(scanLoop, 120) as unknown as number;
+      // Faster cadence — ~16 fps of attempts, was ~8.
+      rafId = window.setTimeout(scanLoop, 60) as unknown as number;
     }
 
     (async () => {
