@@ -19,6 +19,7 @@ import {
   MultiFormatReader,
   RGBLuminanceSource,
   HybridBinarizer,
+  GlobalHistogramBinarizer,
   BinaryBitmap,
 } from "@zxing/library";
 
