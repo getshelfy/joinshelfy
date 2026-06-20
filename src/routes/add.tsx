@@ -628,12 +628,14 @@ function BarcodeScanner({
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute inset-0 bg-black/40" />
           <div
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-2xl"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-2xl transition-shadow duration-150"
             style={{
               width: "78%",
               aspectRatio: "1.6 / 1",
               boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)",
-              border: "3px solid #2D9B6F",
+              border: processing ? "3px solid #7DE3B3" : "3px solid #2D9B6F",
+              outline: processing ? "2px solid rgba(125,227,179,0.55)" : "none",
+              outlineOffset: "2px",
             }}
           >
             <span className="absolute -left-1 -top-1 h-5 w-5 border-l-4 border-t-4 border-white rounded-tl-lg" />
