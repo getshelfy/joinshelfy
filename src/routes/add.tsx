@@ -357,6 +357,7 @@ function BarcodeScanner({
   const [manualValue, setManualValue] = useState("");
   const [torchSupported, setTorchSupported] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const detectedRef = useRef(false);
   const recentScansRef = useRef<{ code: string; t: number }[]>([]);
 
