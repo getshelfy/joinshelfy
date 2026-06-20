@@ -620,6 +620,35 @@ function BarcodeScanner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Listen for barcodes coming from the native iOS camera scanner.
+  // The native shell dispatches `nativeBarcodeScanned` with the barcode
+  // in event.detail.barcode; we then run the same OFF lookup + add flow
+  // as a successful ZXing detection.
+  useEffect(() => {
+    async function onNative(e: Event) {
+      const code = (e as CustomEvent<{ barcode?: string }>).detail?.barcode;
+      if (!code || detectedRef.current) return;
+      detectedRef.current = true;
+      setLooking(true);
+      const lookup = await lookupBarcode(code);
+      const isNumeric = /^\d+$/.test(code);
+      const lengthOk = !isNumeric || (code.length >= 8 && code.length <= 14);
+      if (lookup.status === "notFound" && !lengthOk) {
+        toast.error("Barcode not recognised — try again or enter manually");
+        detectedRef.current = false;
+        setLooking(false);
+        return;
+      }
+      vibrate();
+      beep();
+      if (lookup.status === "found") onProduct(lookup.product);
+      else onSkipManual();
+    }
+    window.addEventListener("nativeBarcodeScanned", onNative as EventListener);
+    return () => window.removeEventListener("nativeBarcodeScanned", onNative as EventListener);
+  }, [onProduct, onSkipManual]);
+
+
   return (
     <div className="space-y-3">
       <div className="relative overflow-hidden rounded-2xl bg-black aspect-square sm:aspect-[3/4]">
