@@ -399,7 +399,9 @@ function BarcodeScanner({
     // partial occlusion much better. ALSO_INVERTED handles light-on-dark
     // barcodes (e.g. white bars on dark packaging).
     hints.set(DecodeHintType.TRY_HARDER, true);
-    hints.set(DecodeHintType.ALSO_INVERTED, true);
+    // ALSO_INVERTED isn't typed in older @zxing/library but is honoured at
+    // runtime — handles light bars on dark packaging.
+    hints.set((DecodeHintType as any).ALSO_INVERTED ?? 16, true);
     const reader = new MultiFormatReader();
     reader.setHints(hints);
 
