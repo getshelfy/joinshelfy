@@ -60,7 +60,7 @@ function LoginPage() {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: { emailRedirectTo: "https://tryshelfy.com/verify" },
         });
         if (error) throw error;
         // With email confirmation enabled, no session is returned until verified.
@@ -91,7 +91,7 @@ function LoginPage() {
       const { error } = await supabase.auth.resend({
         type: "signup",
         email: pendingEmail,
-        options: { emailRedirectTo: window.location.origin },
+        options: { emailRedirectTo: "https://tryshelfy.com/verify" },
       });
       if (error) throw error;
       setResendState("sent");

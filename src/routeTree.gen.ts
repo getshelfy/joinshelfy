@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyRouteImport } from './routes/verify'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RecipesRouteImport } from './routes/recipes'
@@ -24,6 +25,11 @@ import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lova
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 
+const VerifyRoute = VerifyRouteImport.update({
+  id: '/verify',
+  path: '/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
   path: '/unsubscribe',
@@ -107,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/recipes': typeof RecipesRoute
   '/settings': typeof SettingsRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/verify': typeof VerifyRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/location/$location': typeof LocationLocationRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/recipes': typeof RecipesRoute
   '/settings': typeof SettingsRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/verify': typeof VerifyRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/location/$location': typeof LocationLocationRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/recipes': typeof RecipesRoute
   '/settings': typeof SettingsRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/verify': typeof VerifyRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/location/$location': typeof LocationLocationRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/recipes'
     | '/settings'
     | '/unsubscribe'
+    | '/verify'
     | '/email/unsubscribe'
     | '/location/$location'
     | '/lovable/email/suppression'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/recipes'
     | '/settings'
     | '/unsubscribe'
+    | '/verify'
     | '/email/unsubscribe'
     | '/location/$location'
     | '/lovable/email/suppression'
@@ -190,6 +201,7 @@ export interface FileRouteTypes {
     | '/recipes'
     | '/settings'
     | '/unsubscribe'
+    | '/verify'
     | '/email/unsubscribe'
     | '/location/$location'
     | '/lovable/email/suppression'
@@ -207,6 +219,7 @@ export interface RootRouteChildren {
   RecipesRoute: typeof RecipesRoute
   SettingsRoute: typeof SettingsRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
+  VerifyRoute: typeof VerifyRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   LocationLocationRoute: typeof LocationLocationRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
@@ -217,6 +230,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify': {
+      id: '/verify'
+      path: '/verify'
+      fullPath: '/verify'
+      preLoaderRoute: typeof VerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/unsubscribe': {
       id: '/unsubscribe'
       path: '/unsubscribe'
@@ -327,6 +347,7 @@ const rootRouteChildren: RootRouteChildren = {
   RecipesRoute: RecipesRoute,
   SettingsRoute: SettingsRoute,
   UnsubscribeRoute: UnsubscribeRoute,
+  VerifyRoute: VerifyRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   LocationLocationRoute: LocationLocationRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
